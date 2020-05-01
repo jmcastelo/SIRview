@@ -112,6 +112,8 @@ void Section::setAbscissaOrdinate(double time)
         abscissaLeft.push_back(times[i]);
     }
 
+    abscissaLeft.push_back(time);
+
     for (unsigned long i = index - 1; i < times.size(); i++)
     {
         abscissaRight.push_back(times[i]);
@@ -128,6 +130,10 @@ void Section::setAbscissaOrdinate(double time)
         {
             v.push_back(steps[j][i]);
         }
+
+        double interpolatedStep = steps[index - 1][i] + (time - times[index - 1]) * (steps[index][i] - steps[index - 1][i]) / (times[index] - times[index - 1]);
+
+        v.push_back(interpolatedStep);
 
         ordinateLeft.push_back(v);
 

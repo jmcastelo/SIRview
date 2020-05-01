@@ -34,6 +34,7 @@
 #include <QLineEdit>
 #include <QSlider>
 #include <QGroupBox>
+#include <QGridLayout>
 
 class Widget : public QWidget
 {

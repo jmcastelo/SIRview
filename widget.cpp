@@ -72,7 +72,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     timeStartSlider = new QSlider(Qt::Horizontal);
     timeStartSlider->setFixedWidth(200);
-    timeStartSlider->setRange(0, 1000);
+    timeStartSlider->setRange(0, 10000);
     timeStartSlider->setValue(0);
 
     timeEndDoubleValidator = new QDoubleValidator(timeMin, timeMax, 10);
@@ -83,8 +83,8 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     timeEndSlider = new QSlider(Qt::Horizontal);
     timeEndSlider->setFixedWidth(200);
-    timeEndSlider->setRange(0, 1000);
-    timeEndSlider->setValue(1000);
+    timeEndSlider->setRange(0, 10000);
+    timeEndSlider->setValue(10000);
 
     QLabel *parameterLabel = new QLabel("Parameters");
 
@@ -189,7 +189,7 @@ void Widget::constructParameterControls(int index)
 
         QSlider *slider = new QSlider(Qt::Horizontal);
         slider->setFixedWidth(200);
-        slider->setRange(0, 1000);
+        slider->setRange(0, 10000);
         slider->setValue(0);
 
         QHBoxLayout *hBoxLayout = new QHBoxLayout;
@@ -221,29 +221,15 @@ void Widget::constructPlots(int index)
 
     if (index == 0) // SIR model
     {
-        // S plot
+        QString yLabels[3] = {"S", "I", "R"};
 
-        plots.push_back(new QCustomPlot(this));
-
-        plots[0]->xAxis->setLabel("t/Tr");
-        plots[0]->yAxis->setLabel("S");
-
-        // I plot
-
-        plots.push_back(new QCustomPlot(this));
-
-        plots[1]->xAxis->setLabel("t/Tr");
-        plots[1]->yAxis->setLabel("I");
-
-        // R plot
-
-        plots.push_back(new QCustomPlot(this));
-
-        plots[2]->xAxis->setLabel("t/Tr");
-        plots[2]->yAxis->setLabel("R");
-
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 6; i++)
         {
+            plots.push_back(new QCustomPlot(this));
+
+            plots[i]->xAxis->setLabel("t/Tr");
+            plots[i]->yAxis->setLabel(yLabels[i % 3]);
+
             plots[i]->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
 
             plots[i]->axisRect()->setupFullAxesBox(true);
@@ -251,11 +237,22 @@ void Widget::constructPlots(int index)
             plots[i]->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
         }
 
+        // All graphs
+
+        QGridLayout *gridLayout = new QGridLayout;
+        gridLayout->addWidget(plots[3], 0, 0);
+        gridLayout->addWidget(plots[5], 0, 1);
+        gridLayout->addWidget(plots[4], 1, 0, -1, -1);
+
+        QWidget *gridWidget = new QWidget;
+        gridWidget->setLayout(gridLayout);
+
         // Add graph tabs
 
         graphsTabWidget->addTab(plots[0], "Susceptible");
         graphsTabWidget->addTab(plots[1], "Infectious");
         graphsTabWidget->addTab(plots[2], "Recovered");
+        graphsTabWidget->addTab(gridWidget, "All");
     }
 }
 
@@ -278,12 +275,13 @@ void Widget::setPlots()
 
         for (int j = 0; j < numGraphs - 2; j += 2)
         {
-            plots[i]->graph(j)->setData(sections[k].abscissaLeft, sections[k].ordinateLeft[i], true);
-            plots[i]->graph(j + 1)->setData(sections[k].abscissaRight, sections[k].ordinateRight[i], true);
+            plots[i]->graph(j)->setData(sections[k].abscissaLeft, sections[k].ordinateLeft[i % sections[k].dim], true);
+            plots[i]->graph(j + 1)->setData(sections[k].abscissaRight, sections[k].ordinateRight[i % sections[k].dim], true);
+
             k++;
         }
 
-        plots[i]->graph(numGraphs - 1)->setData(sections[k].abscissa, sections[k].ordinate[i], true);
+        plots[i]->graph(numGraphs - 1)->setData(sections[k].abscissa, sections[k].ordinate[i % sections[k].dim], true);
 
         plots[i]->rescaleAxes();
         plots[i]->replot();
@@ -398,7 +396,7 @@ void Widget::addSection()
             double t0 = 0.0;
             double t1 = 50.0;
 
-            Section section(x0, parameters, parametersMin, parametersMax, t0, t1);
+            Section section(3, x0, parameters, parametersMin, parametersMax, t0, t1);
             sections.push_back(section);
         }
         else
@@ -505,8 +503,6 @@ void Widget::removeSection()
         {
             plots[i]->removeGraph(j);
         }
-
-        //plots[i]->addGraph();
 
         numGraphs = plots[i]->graphCount();
 

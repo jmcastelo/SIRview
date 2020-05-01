@@ -26,6 +26,8 @@ typedef std::vector<double> state_type;
 class Section
 {
 public:
+    int dim;
+
     state_type x0, x;
     std::vector<state_type> steps;
     std::vector<double> times;
@@ -37,7 +39,8 @@ public:
     double timeEnd, timeEndMin, timeEndMax;
     std::vector<double> parameters, parametersMin, parametersMax;
 
-    Section(state_type xStart, std::vector<double> p, std::vector<double> pMin, std::vector<double> pMax, double t0, double t1):
+    Section(int d, state_type xStart, std::vector<double> p, std::vector<double> pMin, std::vector<double> pMax, double t0, double t1):
+        dim(d),
         x0(xStart),
         timeStart(t0),
         timeEnd(t1),
