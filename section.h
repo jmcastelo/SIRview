@@ -30,8 +30,8 @@ public:
     std::vector<state_type> steps;
     std::vector<double> times;
 
-    QVector<double> abscissa;
-    std::vector<QVector<double>> ordinate;
+    QVector<double> abscissa, abscissaLeft, abscissaRight;
+    std::vector<QVector<double>> ordinate, ordinateLeft, ordinateRight;
 
     double timeStart, timeStartMin, timeStartMax;
     double timeEnd, timeEndMin, timeEndMax;
@@ -56,6 +56,7 @@ public:
     void interpolateX0(Section section);
 
     void setAbscissaOrdinate();
+    void setAbscissaOrdinate(double time);
 };
 
 #endif // SECTION_H

@@ -90,3 +90,54 @@ void Section::setAbscissaOrdinate()
         ordinate.push_back(v);
     }
 }
+
+void Section::setAbscissaOrdinate(double time)
+{
+    unsigned long index = 0;
+
+    for (unsigned long i = 1; i < times.size(); i++)
+    {
+        if (times[i - 1] < time && time <= times[i])
+        {
+            index = i;
+            break;
+        }
+    }
+
+    abscissaLeft.clear();
+    abscissaRight.clear();
+
+    for (unsigned long i = 0; i < index; i++)
+    {
+        abscissaLeft.push_back(times[i]);
+    }
+
+    for (unsigned long i = index - 1; i < times.size(); i++)
+    {
+        abscissaRight.push_back(times[i]);
+    }
+
+    ordinateLeft.clear();
+    ordinateRight.clear();
+
+    for (unsigned long i = 0; i < steps[0].size(); i++)
+    {
+        QVector<double> v;
+
+        for (unsigned long j = 0; j < index; j++)
+        {
+            v.push_back(steps[j][i]);
+        }
+
+        ordinateLeft.push_back(v);
+
+        QVector<double> w;
+
+        for (unsigned long j = index - 1; j < steps.size(); j++)
+        {
+            w.push_back(steps[j][i]);
+        }
+
+        ordinateRight.push_back(w);
+    }
+}

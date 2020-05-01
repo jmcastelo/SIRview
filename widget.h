@@ -68,7 +68,7 @@ private:
 
     std::vector<QCustomPlot*> plots;
     QTabWidget *graphsTabWidget;
-    Qt::GlobalColor colors[15];
+    Qt::GlobalColor colors[14];
 
     std::vector<QCustomPlot*> graphs;
 
@@ -85,6 +85,8 @@ private:
     void deletePlots();
     void constructPlots(int index);
     void setPlots();
+
+    void deleteSections();
 
     void setTimeStartMinMax(int index);
     void setTimeEndMinMax(int index);

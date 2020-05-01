@@ -37,8 +37,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     colors[10] = Qt::darkMagenta;
     colors[11] = Qt::darkYellow;
     colors[12] = Qt::darkCyan;
-    colors[13] = Qt::gray;
-    colors[14] = Qt::darkGray;
+    colors[13] = Qt::darkGray;
 
     // Model selection controls
 
@@ -46,7 +45,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     modelComboBox = new QComboBox;
     modelComboBox->addItem("SIR");
-    modelComboBox->addItem("SIRS");
+    //modelComboBox->addItem("SIRS");
     modelComboBox->setCurrentIndex(0);
 
     // Section management controls
@@ -142,6 +141,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ constructParameterControls(index); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ constructPlots(index); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ Q_UNUSED(index) deleteSections(); });
     connect(sectionComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ selectSection(index); });
     connect(addSectionPushButton, &QPushButton::clicked, this, &Widget::addSection);
     connect(removeSectionPushButton, &QPushButton::clicked, this, &Widget::removeSection);
@@ -192,8 +192,12 @@ void Widget::constructParameterControls(int index)
         slider->setRange(0, 1000);
         slider->setValue(0);
 
-        parameterVBoxLayout->addWidget(R0Label);
-        parameterVBoxLayout->addWidget(lineEdit);
+        QHBoxLayout *hBoxLayout = new QHBoxLayout;
+
+        hBoxLayout->addWidget(R0Label);
+        hBoxLayout->addWidget(lineEdit);
+
+        parameterVBoxLayout->addLayout(hBoxLayout);
         parameterVBoxLayout->addWidget(slider);
 
         parameterDoubleValidator.push_back(validator);
@@ -257,17 +261,29 @@ void Widget::constructPlots(int index)
 
 void Widget::setPlots()
 {
-    for (unsigned long j = 0; j < sections.size(); j++)
+    unsigned long jmax = sections.size() - 1;
+
+    for (unsigned long j = 0; j < jmax; j++)
     {
-        sections[j].setAbscissaOrdinate();
+        sections[j].setAbscissaOrdinate(sections[j + 1].timeStart);
     }
+
+    sections[jmax].setAbscissaOrdinate();
 
     for (unsigned long i = 0; i < plots.size(); i++)
     {
-        for (unsigned long j = 0; j < sections.size(); j++)
+        int numGraphs = plots[i]->graphCount();
+
+        int k = 0;
+
+        for (int j = 0; j < numGraphs - 2; j += 2)
         {
-            plots[i]->graph(j)->setData(sections[j].abscissa, sections[j].ordinate[i], true);
+            plots[i]->graph(j)->setData(sections[k].abscissaLeft, sections[k].ordinateLeft[i], true);
+            plots[i]->graph(j + 1)->setData(sections[k].abscissaRight, sections[k].ordinateRight[i], true);
+            k++;
         }
+
+        plots[i]->graph(numGraphs - 1)->setData(sections[k].abscissa, sections[k].ordinate[i], true);
 
         plots[i]->rescaleAxes();
         plots[i]->replot();
@@ -313,6 +329,17 @@ void Widget::setTimeEndMinMax(int index)
     timeEndDoubleValidator->setTop(t1);
 }
 
+void Widget::deleteSections()
+{
+    sectionComboBox->clear();
+
+    sections.clear();
+
+    addSection();
+    setTimeStartMinMax(0);
+    setTimeEndMinMax(0);
+}
+
 void Widget::selectSection(int index)
 {
     setTimeStartMinMax(index);
@@ -331,6 +358,12 @@ void Widget::selectSection(int index)
 
     int timeEndSliderPosition = sections[index].getIndexTimeEnd(timeEndSlider->maximum());
     timeEndSlider->setSliderPosition(timeEndSliderPosition);
+
+    for (unsigned long i = 0; i < parameterSlider.size(); i++)
+    {
+         int parameterSliderPosition = sections[index].getIndexParameter(i, parameterSlider[i]->maximum());
+         parameterSlider[i]->setSliderPosition(parameterSliderPosition);
+    }
 
     if (index == 0)
     {
@@ -360,10 +393,10 @@ void Widget::addSection()
             parametersMin[0] = 0.0;
 
             std::vector<double> parametersMax(1);
-            parametersMax[0] = 25.0;
+            parametersMax[0] = 20.0;
 
             double t0 = 0.0;
-            double t1 = 40.0;
+            double t1 = 50.0;
 
             Section section(x0, parameters, parametersMin, parametersMax, t0, t1);
             sections.push_back(section);
@@ -387,14 +420,61 @@ void Widget::addSection()
         parameterLineEdit[i]->setText(QString("%1").arg(sections.back().parameters[i]));
     }
 
-    for (unsigned long i = 0; i < plots.size(); i++)
+    if (index > 0)
     {
-        plots[i]->addGraph();
-        plots[i]->graph(index)->setPen(QPen(colors[index % 15]));
-    }
+        for (unsigned long i = 0; i < plots.size(); i++)
+        {
+            int numGraphs = plots[i]->graphCount();
 
-    if (index == 0)
+            plots[i]->removeGraph(numGraphs - 1);
+        }
+
+        for (unsigned long i = 0; i < plots.size(); i++)
+        {
+            plots[i]->addGraph();
+            plots[i]->addGraph();
+
+            int numGraphs = plots[i]->graphCount();
+
+            QPen pen = QPen(colors[(index - 1) % 14]);
+            pen.setStyle(Qt::SolidLine);
+            pen.setWidth(3);
+
+            plots[i]->graph(numGraphs - 2)->setPen(pen);
+
+            pen.setStyle(Qt::DashLine);
+            pen.setWidth(1);
+
+            plots[i]->graph(numGraphs - 1)->setPen(pen);
+        }
+
+        QPen pen = QPen(colors[index % 14]);
+        pen.setStyle(Qt::SolidLine);
+        pen.setWidth(3);
+
+        for (unsigned long i = 0; i < plots.size(); i++)
+        {
+            plots[i]->addGraph();
+
+            int numGraphs = plots[i]->graphCount();
+
+            plots[i]->graph(numGraphs - 1)->setPen(pen);
+        }
+
+        setPlots();
+    }
+    else
     {
+        QPen pen = QPen(colors[0]);
+        pen.setStyle(Qt::SolidLine);
+        pen.setWidth(3);
+
+        for (unsigned long i = 0; i < plots.size(); i++)
+        {
+            plots[i]->addGraph();
+            plots[i]->graph(0)->setPen(pen);
+        }
+
         integrate(false);
     }
 }
@@ -402,20 +482,48 @@ void Widget::addSection()
 void Widget::removeSection()
 {
     int index = sectionComboBox->currentIndex();
-
-    for (int i = static_cast<int>(sections.size()) - 1; i >= index; i--)
-    {
-        sectionComboBox->removeItem(i);
-
-        for (unsigned long j = 0; j < plots.size(); j++)
-        {
-            plots[j]->removeGraph(i);
-            plots[j]->rescaleAxes();
-            plots[j]->replot();
-        }
-    }
+    int jmax = sections.size() - 1;
 
     sections.erase(sections.begin() + index, sections.begin() + sections.size());
+
+    for (int j = jmax; j >= index; j--)
+    {
+        sectionComboBox->removeItem(j);
+    }
+
+    QPen pen = QPen(colors[(index - 1) % 14]);
+    pen.setStyle(Qt::SolidLine);
+    pen.setWidth(3);
+
+    for (unsigned long i = 0; i < plots.size(); i++)
+    {
+        int numGraphs = plots[i]->graphCount();
+
+        plots[i]->removeGraph(numGraphs - 1);
+
+        for (int j = numGraphs - 2; j >= 2 * index - 1; j--)
+        {
+            plots[i]->removeGraph(j);
+        }
+
+        //plots[i]->addGraph();
+
+        numGraphs = plots[i]->graphCount();
+
+        plots[i]->graph(numGraphs - 1)->setPen(pen);
+
+        plots[i]->rescaleAxes();
+        plots[i]->replot();
+    }
+
+    if (index == 0)
+    {
+        integrate(false);
+    }
+    else
+    {
+        integrate(true);
+    }
 }
 
 void Widget::onTimeStartLineEditReturnPressed()
