@@ -19,6 +19,7 @@
 #define SECTION_H
 
 #include <vector>
+#include <QVector>
 
 typedef std::vector<double> state_type;
 
@@ -28,6 +29,9 @@ public:
     state_type x0, x;
     std::vector<state_type> steps;
     std::vector<double> times;
+
+    QVector<double> abscissa;
+    std::vector<QVector<double>> ordinate;
 
     double timeStart, timeStartMin, timeStartMax;
     double timeEnd, timeEndMin, timeEndMax;
@@ -48,6 +52,10 @@ public:
     int getIndexTimeStart(int indexMax);
     int getIndexTimeEnd(int indexMax);
     int getIndexParameter(int k, int indexMax);
+
+    void interpolateX0(Section section);
+
+    void setAbscissaOrdinate();
 };
 
 #endif // SECTION_H

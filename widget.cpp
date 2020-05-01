@@ -24,6 +24,22 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     timeMin = 0.0;
     timeMax = 1000.0;
 
+    colors[0] = Qt::black;
+    colors[1] = Qt::red;
+    colors[2] = Qt::green;
+    colors[3] = Qt::blue;
+    colors[4] = Qt::darkRed;
+    colors[5] = Qt::darkGreen;
+    colors[6] = Qt::darkBlue;
+    colors[7] = Qt::magenta;
+    colors[8] = Qt::yellow;
+    colors[9] = Qt::cyan;
+    colors[10] = Qt::darkMagenta;
+    colors[11] = Qt::darkYellow;
+    colors[12] = Qt::darkCyan;
+    colors[13] = Qt::gray;
+    colors[14] = Qt::darkGray;
+
     // Model selection controls
 
     QLabel *modelLabel = new QLabel("Model");
@@ -75,7 +91,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     parameterVBoxLayout = new QVBoxLayout;
 
-    constructParameterControls(0);
+    constructParameterControls(0); // SIR
 
     // Main controls vertical layout & widget
 
@@ -98,11 +114,15 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     graphsTabWidget = new QTabWidget;
     graphsTabWidget->setTabPosition(QTabWidget::North);
 
+    constructPlots(0); // SIR
+
     // Main grid layout
 
     QGridLayout *mainGridLayout = new QGridLayout;
-    mainGridLayout->addLayout(mainControlsVBoxLayout, 0, 0, Qt::AlignLeft | Qt::AlignTop);
-    mainGridLayout->addWidget(graphsTabWidget, 0 , 1);
+    mainGridLayout->addLayout(mainControlsVBoxLayout, 0, 0, Qt::AlignTop);
+    mainGridLayout->addWidget(graphsTabWidget, 0, 1);
+    mainGridLayout->setColumnStretch(0, 0);
+    mainGridLayout->setColumnStretch(1, 1);
 
     // Sections setup
 
@@ -121,6 +141,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     // Signals + Slots
 
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ constructParameterControls(index); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ constructPlots(index); });
     connect(sectionComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ selectSection(index); });
     connect(addSectionPushButton, &QPushButton::clicked, this, &Widget::addSection);
     connect(removeSectionPushButton, &QPushButton::clicked, this, &Widget::removeSection);
@@ -181,6 +202,75 @@ void Widget::constructParameterControls(int index)
 
         connect(lineEdit, &QLineEdit::returnPressed, [=]{ onParameterLineEditReturnPressed(0); });
         connect(slider, &QSlider::sliderMoved, [=](int value){ onParameterSliderValueChanged(0, value); });
+    }
+}
+
+void Widget::deletePlots()
+{
+    graphsTabWidget->clear();
+    plots.clear();
+}
+
+void Widget::constructPlots(int index)
+{
+    deletePlots();
+
+    if (index == 0) // SIR model
+    {
+        // S plot
+
+        plots.push_back(new QCustomPlot(this));
+
+        plots[0]->xAxis->setLabel("t/Tr");
+        plots[0]->yAxis->setLabel("S");
+
+        // I plot
+
+        plots.push_back(new QCustomPlot(this));
+
+        plots[1]->xAxis->setLabel("t/Tr");
+        plots[1]->yAxis->setLabel("I");
+
+        // R plot
+
+        plots.push_back(new QCustomPlot(this));
+
+        plots[2]->xAxis->setLabel("t/Tr");
+        plots[2]->yAxis->setLabel("R");
+
+        for (int i = 0; i < 3; i++)
+        {
+            plots[i]->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
+
+            plots[i]->axisRect()->setupFullAxesBox(true);
+            plots[i]->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
+            plots[i]->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
+        }
+
+        // Add graph tabs
+
+        graphsTabWidget->addTab(plots[0], "Susceptible");
+        graphsTabWidget->addTab(plots[1], "Infectious");
+        graphsTabWidget->addTab(plots[2], "Recovered");
+    }
+}
+
+void Widget::setPlots()
+{
+    for (unsigned long j = 0; j < sections.size(); j++)
+    {
+        sections[j].setAbscissaOrdinate();
+    }
+
+    for (unsigned long i = 0; i < plots.size(); i++)
+    {
+        for (unsigned long j = 0; j < sections.size(); j++)
+        {
+            plots[i]->graph(j)->setData(sections[j].abscissa, sections[j].ordinate[i], true);
+        }
+
+        plots[i]->rescaleAxes();
+        plots[i]->replot();
     }
 }
 
@@ -270,10 +360,10 @@ void Widget::addSection()
             parametersMin[0] = 0.0;
 
             std::vector<double> parametersMax(1);
-            parametersMax[0] = 50.0;
+            parametersMax[0] = 25.0;
 
             double t0 = 0.0;
-            double t1 = 10.0;
+            double t1 = 40.0;
 
             Section section(x0, parameters, parametersMin, parametersMax, t0, t1);
             sections.push_back(section);
@@ -296,6 +386,17 @@ void Widget::addSection()
     {
         parameterLineEdit[i]->setText(QString("%1").arg(sections.back().parameters[i]));
     }
+
+    for (unsigned long i = 0; i < plots.size(); i++)
+    {
+        plots[i]->addGraph();
+        plots[i]->graph(index)->setPen(QPen(colors[index % 15]));
+    }
+
+    if (index == 0)
+    {
+        integrate(false);
+    }
 }
 
 void Widget::removeSection()
@@ -305,6 +406,13 @@ void Widget::removeSection()
     for (int i = static_cast<int>(sections.size()) - 1; i >= index; i--)
     {
         sectionComboBox->removeItem(i);
+
+        for (unsigned long j = 0; j < plots.size(); j++)
+        {
+            plots[j]->removeGraph(i);
+            plots[j]->rescaleAxes();
+            plots[j]->replot();
+        }
     }
 
     sections.erase(sections.begin() + index, sections.begin() + sections.size());
@@ -317,6 +425,8 @@ void Widget::onTimeStartLineEditReturnPressed()
 
     int sliderPosition = sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
     timeStartSlider->setSliderPosition(sliderPosition);
+
+    integrate(true);
 }
 
 void Widget::onTimeEndLineEditReturnPressed()
@@ -326,6 +436,8 @@ void Widget::onTimeEndLineEditReturnPressed()
 
     int sliderPosition = sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
     timeEndSlider->setSliderPosition(sliderPosition);
+
+    integrate(false);
 }
 
 void Widget::onTimeStartSliderValueChanged(int value)
@@ -337,6 +449,8 @@ void Widget::onTimeStartSliderValueChanged(int value)
     setTimeEndMinMax(sectionIndex);
 
     timeStartLineEdit->setText(QString("%1").arg(sections[sectionIndex].timeStart));
+
+    integrate(true);
 }
 
 void Widget::onTimeEndSliderValueChanged(int value)
@@ -348,6 +462,8 @@ void Widget::onTimeEndSliderValueChanged(int value)
     setTimeStartMinMax(sectionIndex);
 
     timeEndLineEdit->setText(QString("%1").arg(sections[sectionIndex].timeEnd));
+
+    integrate(false);
 }
 
 void Widget::onParameterLineEditReturnPressed(int index)
@@ -357,6 +473,8 @@ void Widget::onParameterLineEditReturnPressed(int index)
 
     int sliderPosition = sections[sectionIndex].getIndexParameter(index, parameterSlider[index]->maximum());
     parameterSlider[index]->setSliderPosition(sliderPosition);
+
+    integrate(false);
 }
 
 void Widget::onParameterSliderValueChanged(int index, int value)
@@ -366,4 +484,37 @@ void Widget::onParameterSliderValueChanged(int index, int value)
     sections[sectionIndex].setParameter(index, value, parameterSlider[index]->maximum());
 
     parameterLineEdit[index]->setText(QString("%1").arg(sections[sectionIndex].parameters[index]));
+
+    integrate(false);
+}
+
+void Widget::integrate(bool interpolation)
+{
+    using namespace boost::numeric::odeint;
+
+    typedef runge_kutta_dopri5<state_type> error_stepper_type;
+
+    int sectionIndex = sectionComboBox->currentIndex();
+
+    for (int i = sectionIndex; i < static_cast<int>(sections.size()); i++)
+    {
+        if (interpolation && i > 0)
+        {
+            sections[i].interpolateX0(sections[i - 1]);
+        }
+
+        interpolation = true;
+
+        sections[i].x = sections[i].x0;
+        sections[i].steps.clear();
+        sections[i].times.clear();
+
+        if (modelComboBox->currentIndex() == 0) // SIR model
+        {
+            SIR sir(sections[i].parameters[0]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sir, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
+        }
+    }
+
+    setPlots();
 }

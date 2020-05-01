@@ -46,3 +46,47 @@ int Section::getIndexParameter(int k, int indexMax)
 {
     return static_cast<int>(indexMax * (parameters[k] - parametersMin[k]) / (parametersMax[k] - parametersMin[k]));
 }
+
+void Section::interpolateX0(Section section)
+{
+    double time0, time1;
+    state_type step0, step1;
+
+    for (unsigned long i = 1; i < section.times.size(); i++)
+    {
+        if (section.times[i - 1] <= timeStart && timeStart <= section.times[i])
+        {
+            time0 = section.times[i - 1];
+            time1 = section.times[i];
+
+            step0 = section.steps[i - 1];
+            step1 = section.steps[i];
+
+            break;
+        }
+    }
+
+    for (unsigned long i = 0; i < x0.size(); i++)
+    {
+        x0[i] = step0[i] + (timeStart - time0) * (step1[i] - step0[i]) / (time1 - time0);
+    }
+}
+
+void Section::setAbscissaOrdinate()
+{
+    abscissa = QVector<double>(times.begin(), times.end());
+
+    ordinate.clear();
+
+    for (unsigned long i = 0; i < steps[0].size(); i++)
+    {
+        QVector<double> v;
+
+        for (unsigned long j = 0; j < steps.size(); j++)
+        {
+            v.push_back(steps[j][i]);
+        }
+
+        ordinate.push_back(v);
+    }
+}

@@ -22,6 +22,7 @@
 #include "section.h"
 #include "qcustomplot.h"
 #include <vector>
+#include <boost/numeric/odeint.hpp>
 #include <QWidget>
 #include <QLabel>
 #include <QComboBox>
@@ -65,7 +66,9 @@ private:
     std::vector<QDoubleValidator*> parameterDoubleValidator;
     std::vector<QSlider*> parameterSlider;
 
+    std::vector<QCustomPlot*> plots;
     QTabWidget *graphsTabWidget;
+    Qt::GlobalColor colors[15];
 
     std::vector<QCustomPlot*> graphs;
 
@@ -75,13 +78,22 @@ private:
     void onTimeEndSliderValueChanged(int value);
     void onParameterLineEditReturnPressed(int index);
     void onParameterSliderValueChanged(int index, int value);
+
     void deleteParameterControls();
     void constructParameterControls(int index);
+
+    void deletePlots();
+    void constructPlots(int index);
+    void setPlots();
+
+    void setTimeStartMinMax(int index);
+    void setTimeEndMinMax(int index);
+
     void selectSection(int index);
     void addSection();
     void removeSection();
-    void setTimeStartMinMax(int index);
-    void setTimeEndMinMax(int index);
+
+    void integrate(bool interpolation);
 };
 
 #endif // WIDGET_H
