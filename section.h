@@ -46,7 +46,7 @@ public:
         timeEnd(t1),
         parameters(p),
         parametersMin(pMin),
-        parametersMax(pMax){};
+        parametersMax(pMax){}
 
     void setTimeStart(int i, int indexMax);
     void setTimeEnd(int i, int indexMax);

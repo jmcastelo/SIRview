@@ -45,7 +45,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     modelComboBox = new QComboBox;
     modelComboBox->addItem("SIR");
-    //modelComboBox->addItem("SIRS");
+    modelComboBox->addItem("SIRS");
     modelComboBox->setCurrentIndex(0);
 
     // Section management controls
@@ -67,24 +67,28 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     timeStartDoubleValidator = new QDoubleValidator(timeMin, timeMax, 10);
 
     timeStartLineEdit = new QLineEdit;
-    timeStartLineEdit->setFixedWidth(200);
     timeStartLineEdit->setValidator(timeStartDoubleValidator);
 
     timeStartSlider = new QSlider(Qt::Horizontal);
-    timeStartSlider->setFixedWidth(200);
+    timeStartSlider->setFixedWidth(250);
     timeStartSlider->setRange(0, 10000);
     timeStartSlider->setValue(0);
 
     timeEndDoubleValidator = new QDoubleValidator(timeMin, timeMax, 10);
 
     timeEndLineEdit = new QLineEdit;
-    timeEndLineEdit->setFixedWidth(200);
     timeEndLineEdit->setValidator(timeEndDoubleValidator);
 
     timeEndSlider = new QSlider(Qt::Horizontal);
-    timeEndSlider->setFixedWidth(200);
+    timeEndSlider->setFixedWidth(250);
     timeEndSlider->setRange(0, 10000);
     timeEndSlider->setValue(10000);
+
+    QLabel *initialConditionsLabel = new QLabel("Initial conditions");
+
+    initialConditionsVBoxLayout = new QVBoxLayout;
+
+    constructInitialConditionsControls(0);
 
     QLabel *parameterLabel = new QLabel("Parameters");
 
@@ -105,6 +109,8 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     mainControlsVBoxLayout->addWidget(timeStartSlider);
     mainControlsVBoxLayout->addWidget(timeEndLineEdit);
     mainControlsVBoxLayout->addWidget(timeEndSlider);
+    mainControlsVBoxLayout->addWidget(initialConditionsLabel);
+    mainControlsVBoxLayout->addLayout(initialConditionsVBoxLayout);
     mainControlsVBoxLayout->addWidget(parameterLabel);
     mainControlsVBoxLayout->addLayout(parameterVBoxLayout);
 
@@ -140,9 +146,10 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     // Signals + Slots
 
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ constructParameterControls(index); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ constructInitialConditionsControls(index); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ constructPlots(index); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ Q_UNUSED(index) deleteSections(); });
-    connect(sectionComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ selectSection(index); });
+    connect(sectionComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ if (index >= 0) selectSection(index); });
     connect(addSectionPushButton, &QPushButton::clicked, this, &Widget::addSection);
     connect(removeSectionPushButton, &QPushButton::clicked, this, &Widget::removeSection);
     connect(timeStartLineEdit, &QLineEdit::returnPressed, this, &Widget::onTimeStartLineEditReturnPressed);
@@ -160,16 +167,29 @@ void Widget::deleteParameterControls()
     for (unsigned long i = 0; i < parameterLineEdit.size(); i++)
     {
         parameterLineEdit[i]->disconnect();
+        parameterSlider[i]->disconnect();
     }
 
     parameterLineEdit.clear();
     parameterDoubleValidator.clear();
     parameterSlider.clear();
 
-    while(!parameterVBoxLayout->isEmpty())
+    QLayoutItem *child;
+    while((child = parameterVBoxLayout->takeAt(0)) != 0)
     {
-        QWidget *w = parameterVBoxLayout->takeAt(0)->widget();
-        delete w;
+        if (QWidget *pQWidget = child->widget())
+        {
+            delete pQWidget;
+        }
+        else if (QLayout *pQLayout = child->layout())
+        {
+            while(!pQLayout->isEmpty())
+            {
+                QWidget *pQWidget = pQLayout->takeAt(0)->widget();
+                delete pQWidget;
+            }
+            delete pQLayout;
+        }
     }
 }
 
@@ -177,25 +197,38 @@ void Widget::constructParameterControls(int index)
 {
     deleteParameterControls();
 
+    std::vector<QLabel*> parameterLabels;
+    std::vector<double> parameterMax;
+
     if (index == 0) // SIR model
     {
-        QLabel *R0Label = new QLabel("R0");
+        parameterLabels.push_back(new QLabel("R0"));
+        parameterMax.push_back(20.0);
+    }
+    else if (index == 1) // SIRS model
+    {
+        parameterLabels.push_back(new QLabel("R0"));
+        parameterLabels.push_back(new QLabel("R1"));
+        parameterMax.push_back(20.0);
+        parameterMax.push_back(5.0);
+    }
 
-        QDoubleValidator *validator = new QDoubleValidator(0.0, 50.0, 10);
+    for (int i = 0; i < static_cast<int>(parameterMax.size()); i++)
+    {
+        QDoubleValidator *validator = new QDoubleValidator(0.0, parameterMax[i], 10);
 
         QLineEdit *lineEdit = new QLineEdit;
-        lineEdit->setFixedWidth(200);
         lineEdit->setValidator(validator);
-
-        QSlider *slider = new QSlider(Qt::Horizontal);
-        slider->setFixedWidth(200);
-        slider->setRange(0, 10000);
-        slider->setValue(0);
 
         QHBoxLayout *hBoxLayout = new QHBoxLayout;
 
-        hBoxLayout->addWidget(R0Label);
+        hBoxLayout->addWidget(parameterLabels[i]);
         hBoxLayout->addWidget(lineEdit);
+
+        QSlider *slider = new QSlider(Qt::Horizontal);
+        slider->setFixedWidth(250);
+        slider->setRange(0, 10000);
+        slider->setValue(0);
 
         parameterVBoxLayout->addLayout(hBoxLayout);
         parameterVBoxLayout->addWidget(slider);
@@ -204,9 +237,76 @@ void Widget::constructParameterControls(int index)
         parameterLineEdit.push_back(lineEdit);
         parameterSlider.push_back(slider);
 
-        connect(lineEdit, &QLineEdit::returnPressed, [=]{ onParameterLineEditReturnPressed(0); });
-        connect(slider, &QSlider::sliderMoved, [=](int value){ onParameterSliderValueChanged(0, value); });
+        connect(lineEdit, &QLineEdit::returnPressed, [=]{ onParameterLineEditReturnPressed(i); });
+        connect(slider, &QSlider::sliderMoved, [=](int value){ onParameterSliderValueChanged(i, value); });
     }
+}
+
+void Widget::deleteInitialConditionsControls()
+{
+    for (unsigned long i = 0; i < initialConditionsLineEdit.size(); i++)
+    {
+        initialConditionsLineEdit[i]->disconnect();
+    }
+
+    initialConditionsLabel.clear();
+    initialConditionsLineEdit.clear();
+    initialConditionsDoubleValidator.clear();
+
+    QLayoutItem *child;
+    while((child = initialConditionsVBoxLayout->takeAt(0)) != 0)
+    {
+        if (QWidget *pQWidget = child->widget())
+        {
+            delete pQWidget;
+        }
+        else if (QLayout *pQLayout = child->layout())
+        {
+            while(!pQLayout->isEmpty())
+            {
+                QWidget *pQWidget = pQLayout->takeAt(0)->widget();
+                delete pQWidget;
+            }
+            delete pQLayout;
+        }
+    }
+}
+
+void Widget::constructInitialConditionsControls(int index)
+{
+    deleteInitialConditionsControls();
+
+    if (index == 0 || index == 1) // SIR & SIRS models
+    {
+        initialConditionsLabel.push_back(new QLabel("S"));
+        initialConditionsLabel.push_back(new QLabel("I"));
+        initialConditionsLabel.push_back(new QLabel("R"));
+    }
+
+    for (int i = 0; i < static_cast<int>(initialConditionsLabel.size()); i++)
+    {
+        QDoubleValidator *validator = new QDoubleValidator;
+        validator->setBottom(0);
+
+        QLineEdit *lineEdit = new QLineEdit;
+        lineEdit->setValidator(validator);
+
+        QHBoxLayout *hBoxLayout = new QHBoxLayout;
+
+        hBoxLayout->addWidget(initialConditionsLabel[i]);;
+        hBoxLayout->addWidget(lineEdit);
+
+        initialConditionsVBoxLayout->addLayout(hBoxLayout);
+
+        initialConditionsDoubleValidator.push_back(validator);
+        initialConditionsLineEdit.push_back(lineEdit);
+
+        connect(lineEdit, &QLineEdit::returnPressed, [=]{ onInitialConditionsLineEditReturnPressed(i); });
+    }
+
+    sumInitialConditionsLabel = new QLabel("Sum");
+
+    initialConditionsVBoxLayout->addWidget(sumInitialConditionsLabel);
 }
 
 void Widget::deletePlots()
@@ -219,7 +319,7 @@ void Widget::constructPlots(int index)
 {
     deletePlots();
 
-    if (index == 0) // SIR model
+    if (index == 0 || index == 1) // SIR / SIRS models
     {
         QString yLabels[3] = {"S", "I", "R"};
 
@@ -249,10 +349,10 @@ void Widget::constructPlots(int index)
 
         // Add graph tabs
 
+        graphsTabWidget->addTab(gridWidget, "All");
         graphsTabWidget->addTab(plots[0], "Susceptible");
         graphsTabWidget->addTab(plots[1], "Infectious");
         graphsTabWidget->addTab(plots[2], "Recovered");
-        graphsTabWidget->addTab(gridWidget, "All");
     }
 }
 
@@ -366,11 +466,23 @@ void Widget::selectSection(int index)
     if (index == 0)
     {
         removeSectionPushButton->setEnabled(false);
+
+        for (unsigned long i = 0; i < initialConditionsLineEdit.size(); i++)
+        {
+            initialConditionsLineEdit[i]->setEnabled(true);
+        }
     }
     else
     {
         removeSectionPushButton->setEnabled(true);
+
+        for (unsigned long i = 0; i < initialConditionsLineEdit.size(); i++)
+        {
+            initialConditionsLineEdit[i]->setEnabled(false);
+        }
     }
+
+    updateInitialConditionsControls();
 }
 
 void Widget::addSection()
@@ -392,6 +504,38 @@ void Widget::addSection()
 
             std::vector<double> parametersMax(1);
             parametersMax[0] = 20.0;
+
+            double t0 = 0.0;
+            double t1 = 50.0;
+
+            Section section(3, x0, parameters, parametersMin, parametersMax, t0, t1);
+            sections.push_back(section);
+        }
+        else
+        {
+            sections.push_back(sections.back());
+        }
+    }
+    else if (modelComboBox->currentIndex() == 1) // SIRS model
+    {
+        if (sections.empty())
+        {
+            state_type x0(3);
+            x0[1] = 1.0e-7;
+            x0[2] = 0.0;
+            x0[0] = 1.0 - x0[1] - x0[2];
+
+            std::vector<double> parameters(2);
+            parameters[0] = 2.5;
+            parameters[1] = 0.1;
+
+            std::vector<double> parametersMin(2);
+            parametersMin[0] = 0.0;
+            parametersMin[1] = 0.0;
+
+            std::vector<double> parametersMax(2);
+            parametersMax[0] = 20.0;
+            parametersMax[1] = 5.0;
 
             double t0 = 0.0;
             double t1 = 50.0;
@@ -592,6 +736,56 @@ void Widget::onParameterSliderValueChanged(int index, int value)
     integrate(false);
 }
 
+void Widget::onInitialConditionsLineEditReturnPressed(int index)
+{
+    sections[0].x0[index] = initialConditionsLineEdit[index]->text().toDouble();
+
+    updateSumInitialConditionsLabel();
+
+    integrate(false);
+}
+
+void Widget::updateInitialConditionsControls()
+{
+    int sectionIndex = sectionComboBox->currentIndex();
+
+    for (unsigned long i = 0; i < initialConditionsLineEdit.size(); i++)
+    {
+        initialConditionsLineEdit[i]->setText(QString("%1").arg(sections[sectionIndex].x0[i]));
+    }
+
+    updateSumInitialConditionsLabel();
+}
+
+void Widget::updateSumInitialConditionsLabel()
+{
+    int sectionIndex = sectionComboBox->currentIndex();
+
+    QString text;
+    double sum = 0.0;
+
+    for (unsigned long i = 0; i < initialConditionsLabel.size(); i++)
+    {
+        text.append(initialConditionsLabel[i]->text());
+
+        if (i < initialConditionsLabel.size() - 1)
+        {
+            text.append(" + ");
+        }
+        else
+        {
+            text.append(" = ");
+        }
+
+        sum += sections[sectionIndex].x0[i];
+    }
+
+    text.append(QString("%1").arg(sum));
+
+    sumInitialConditionsLabel->setText(text);
+    sumInitialConditionsLabel->repaint();
+}
+
 void Widget::integrate(bool interpolation)
 {
     using namespace boost::numeric::odeint;
@@ -618,7 +812,14 @@ void Widget::integrate(bool interpolation)
             SIR sir(sections[i].parameters[0]);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sir, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
         }
+        else if (modelComboBox->currentIndex() == 1) // SIRS model
+        {
+            SIRS sirs(sections[i].parameters[0], sections[i].parameters[1]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirs, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
+        }
     }
+
+    updateInitialConditionsControls();
 
     setPlots();
 }

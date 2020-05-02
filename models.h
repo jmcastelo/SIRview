@@ -27,13 +27,28 @@ class SIR
 public:
     double R0;
 
-    SIR(double parameter): R0(parameter){}
+    SIR(double r0): R0(r0){}
 
     void operator()(const state_type &x, state_type &dxdt, const double)
     {
         dxdt[0] = -R0 * x[0] * x[1];
         dxdt[1] = (R0 * x[0] - 1) * x[1];
         dxdt[2] = x[1];
+    }
+};
+
+class SIRS
+{
+public:
+    double R0, R1;
+
+    SIRS(double r0, double r1): R0(r0), R1(r1){}
+
+    void operator()(const state_type &x, state_type &dxdt, const double)
+    {
+        dxdt[0] = -R0 * x[0] * x[1] + R1 * x[2];
+        dxdt[1] = (R0 * x[0] - 1) * x[1];
+        dxdt[2] = x[1] - R1 * x[2];
     }
 };
 

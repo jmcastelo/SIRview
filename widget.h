@@ -53,15 +53,24 @@ private:
     QComboBox *modelComboBox;
 
     QVBoxLayout *mainControlsVBoxLayout;
+
     QPushButton *addSectionPushButton;
     QPushButton *removeSectionPushButton;
     QComboBox *sectionComboBox;
+
     QDoubleValidator *timeStartDoubleValidator;
     QDoubleValidator *timeEndDoubleValidator;
     QLineEdit *timeStartLineEdit;
     QLineEdit *timeEndLineEdit;
     QSlider *timeStartSlider;
     QSlider *timeEndSlider;
+
+    QVBoxLayout *initialConditionsVBoxLayout;
+    std::vector<QLineEdit*> initialConditionsLineEdit;
+    std::vector<QDoubleValidator*> initialConditionsDoubleValidator;
+    std::vector<QLabel*> initialConditionsLabel;
+    QLabel *sumInitialConditionsLabel;
+
     QVBoxLayout *parameterVBoxLayout;
     std::vector<QLineEdit*> parameterLineEdit;
     std::vector<QDoubleValidator*> parameterDoubleValidator;
@@ -77,11 +86,20 @@ private:
     void onTimeEndLineEditReturnPressed();
     void onTimeStartSliderValueChanged(int value);
     void onTimeEndSliderValueChanged(int value);
+
     void onParameterLineEditReturnPressed(int index);
     void onParameterSliderValueChanged(int index, int value);
 
+    void onInitialConditionsLineEditReturnPressed(int index);
+
+    void updateInitialConditionsControls();
+    void updateSumInitialConditionsLabel();
+
     void deleteParameterControls();
     void constructParameterControls(int index);
+
+    void deleteInitialConditionsControls();
+    void constructInitialConditionsControls(int index);
 
     void deletePlots();
     void constructPlots(int index);
