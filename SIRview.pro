@@ -22,6 +22,7 @@ SOURCES += \
     widget.cpp
 
 HEADERS += \
+    customvalidator.h \
     models.h \
     qcustomplot.h \
     section.h \

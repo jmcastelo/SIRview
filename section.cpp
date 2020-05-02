@@ -97,7 +97,7 @@ void Section::setAbscissaOrdinate(double time)
 
     for (unsigned long i = 1; i < times.size(); i++)
     {
-        if (times[i - 1] < time && time <= times[i])
+        if (times[i - 1] <= time && time <= times[i])
         {
             index = i;
             break;

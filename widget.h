@@ -20,6 +20,7 @@
 
 #include "models.h"
 #include "section.h"
+#include "customvalidator.h"
 #include "qcustomplot.h"
 #include <vector>
 #include <boost/numeric/odeint.hpp>
@@ -32,6 +33,7 @@
 #include <QHBoxLayout>
 #include <QDoubleValidator>
 #include <QLineEdit>
+#include <QDoubleSpinBox>
 #include <QSlider>
 #include <QGroupBox>
 #include <QGridLayout>
@@ -58,8 +60,8 @@ private:
     QPushButton *removeSectionPushButton;
     QComboBox *sectionComboBox;
 
-    QDoubleValidator *timeStartDoubleValidator;
-    QDoubleValidator *timeEndDoubleValidator;
+    CustomValidator *timeStartDoubleValidator;
+    CustomValidator *timeEndDoubleValidator;
     QLineEdit *timeStartLineEdit;
     QLineEdit *timeEndLineEdit;
     QSlider *timeStartSlider;
@@ -67,13 +69,11 @@ private:
 
     QVBoxLayout *initialConditionsVBoxLayout;
     std::vector<QLineEdit*> initialConditionsLineEdit;
-    std::vector<QDoubleValidator*> initialConditionsDoubleValidator;
     std::vector<QLabel*> initialConditionsLabel;
     QLabel *sumInitialConditionsLabel;
 
     QVBoxLayout *parameterVBoxLayout;
     std::vector<QLineEdit*> parameterLineEdit;
-    std::vector<QDoubleValidator*> parameterDoubleValidator;
     std::vector<QSlider*> parameterSlider;
 
     std::vector<QCustomPlot*> plots;

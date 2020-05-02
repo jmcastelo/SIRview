@@ -64,9 +64,12 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     QLabel *timeLabel = new QLabel("Time range");
 
-    timeStartDoubleValidator = new QDoubleValidator(timeMin, timeMax, 10);
-
     timeStartLineEdit = new QLineEdit;
+
+    timeStartDoubleValidator = new CustomValidator(timeMin, timeMax, 10, timeStartLineEdit);
+    timeStartDoubleValidator->setNotation(QDoubleValidator::StandardNotation);
+    timeStartDoubleValidator->setLocale(QLocale::English);
+
     timeStartLineEdit->setValidator(timeStartDoubleValidator);
 
     timeStartSlider = new QSlider(Qt::Horizontal);
@@ -74,9 +77,12 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     timeStartSlider->setRange(0, 10000);
     timeStartSlider->setValue(0);
 
-    timeEndDoubleValidator = new QDoubleValidator(timeMin, timeMax, 10);
-
     timeEndLineEdit = new QLineEdit;
+
+    timeEndDoubleValidator = new CustomValidator(timeMin, timeMax, 10, timeEndLineEdit);
+    timeEndDoubleValidator->setNotation(QDoubleValidator::StandardNotation);
+    timeEndDoubleValidator->setLocale(QLocale::English);
+
     timeEndLineEdit->setValidator(timeEndDoubleValidator);
 
     timeEndSlider = new QSlider(Qt::Horizontal);
@@ -171,7 +177,6 @@ void Widget::deleteParameterControls()
     }
 
     parameterLineEdit.clear();
-    parameterDoubleValidator.clear();
     parameterSlider.clear();
 
     QLayoutItem *child;
@@ -215,9 +220,12 @@ void Widget::constructParameterControls(int index)
 
     for (int i = 0; i < static_cast<int>(parameterMax.size()); i++)
     {
-        QDoubleValidator *validator = new QDoubleValidator(0.0, parameterMax[i], 10);
-
         QLineEdit *lineEdit = new QLineEdit;
+
+        CustomValidator *validator = new CustomValidator(0.0, parameterMax[i], 10, lineEdit);
+        validator->setNotation(QDoubleValidator::StandardNotation);
+        validator->setLocale(QLocale::English);
+
         lineEdit->setValidator(validator);
 
         QHBoxLayout *hBoxLayout = new QHBoxLayout;
@@ -233,7 +241,6 @@ void Widget::constructParameterControls(int index)
         parameterVBoxLayout->addLayout(hBoxLayout);
         parameterVBoxLayout->addWidget(slider);
 
-        parameterDoubleValidator.push_back(validator);
         parameterLineEdit.push_back(lineEdit);
         parameterSlider.push_back(slider);
 
@@ -251,7 +258,6 @@ void Widget::deleteInitialConditionsControls()
 
     initialConditionsLabel.clear();
     initialConditionsLineEdit.clear();
-    initialConditionsDoubleValidator.clear();
 
     QLayoutItem *child;
     while((child = initialConditionsVBoxLayout->takeAt(0)) != 0)
@@ -285,10 +291,12 @@ void Widget::constructInitialConditionsControls(int index)
 
     for (int i = 0; i < static_cast<int>(initialConditionsLabel.size()); i++)
     {
-        QDoubleValidator *validator = new QDoubleValidator;
-        validator->setBottom(0);
-
         QLineEdit *lineEdit = new QLineEdit;
+
+        CustomValidator *validator = new CustomValidator(0.0, 1.0, 10, lineEdit);
+        validator->setNotation(QDoubleValidator::StandardNotation);
+        validator->setLocale(QLocale::English);
+
         lineEdit->setValidator(validator);
 
         QHBoxLayout *hBoxLayout = new QHBoxLayout;
@@ -298,7 +306,6 @@ void Widget::constructInitialConditionsControls(int index)
 
         initialConditionsVBoxLayout->addLayout(hBoxLayout);
 
-        initialConditionsDoubleValidator.push_back(validator);
         initialConditionsLineEdit.push_back(lineEdit);
 
         connect(lineEdit, &QLineEdit::returnPressed, [=]{ onInitialConditionsLineEditReturnPressed(i); });
@@ -329,6 +336,8 @@ void Widget::constructPlots(int index)
 
             plots[i]->xAxis->setLabel("t/Tr");
             plots[i]->yAxis->setLabel(yLabels[i % 3]);
+
+            plots[i]->yAxis->setRange(0.0, 1.0);
 
             plots[i]->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
 
@@ -383,7 +392,7 @@ void Widget::setPlots()
 
         plots[i]->graph(numGraphs - 1)->setData(sections[k].abscissa, sections[k].ordinate[i % sections[k].dim], true);
 
-        plots[i]->rescaleAxes();
+        plots[i]->xAxis->rescale();
         plots[i]->replot();
     }
 }
@@ -560,6 +569,9 @@ void Widget::addSection()
     for (unsigned long i = 0; i < sections.back().parameters.size(); i++)
     {
         parameterLineEdit[i]->setText(QString("%1").arg(sections.back().parameters[i]));
+
+        int sliderPosition = sections.back().getIndexParameter(i, parameterSlider[i]->maximum());
+        parameterSlider[i]->setSliderPosition(sliderPosition);
     }
 
     if (index > 0)
@@ -718,6 +730,8 @@ void Widget::onParameterLineEditReturnPressed(int index)
 {
     int sectionIndex = sectionComboBox->currentIndex();
     sections[sectionIndex].parameters[index] = parameterLineEdit[index]->text().toDouble();
+
+    qDebug() << parameterLineEdit[index]->text();
 
     int sliderPosition = sections[sectionIndex].getIndexParameter(index, parameterSlider[index]->maximum());
     parameterSlider[index]->setSliderPosition(sliderPosition);
