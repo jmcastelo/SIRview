@@ -46,6 +46,9 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     modelComboBox = new QComboBox;
     modelComboBox->addItem("SIR");
     modelComboBox->addItem("SIRS");
+    modelComboBox->addItem("SIRA");
+    modelComboBox->addItem("SIR + Vital dynamics");
+    modelComboBox->addItem("SIRS + Vital dynamics");
     modelComboBox->setCurrentIndex(0);
 
     // Section management controls
@@ -207,14 +210,30 @@ void Widget::constructParameterControls(int index)
 
     if (index == 0) // SIR model
     {
-        parameterLabels.push_back(new QLabel("R0"));
+        parameterLabels.push_back(new QLabel("P0"));
         parameterMax.push_back(20.0);
     }
-    else if (index == 1) // SIRS model
+    else if (index == 1 || index == 2) // SIRS / SIRA models
     {
-        parameterLabels.push_back(new QLabel("R0"));
-        parameterLabels.push_back(new QLabel("R1"));
+        parameterLabels.push_back(new QLabel("P0"));
+        parameterLabels.push_back(new QLabel("P1"));
         parameterMax.push_back(20.0);
+        parameterMax.push_back(2.0);
+    }
+    else if (index == 3) // SIR + Vital dynamics
+    {
+        parameterLabels.push_back(new QLabel("P0"));
+        parameterLabels.push_back(new QLabel("P1"));
+        parameterMax.push_back(20.0);
+        parameterMax.push_back(5.0);
+    }
+    else if (index == 4) // SIRS + Vital dynamics
+    {
+        parameterLabels.push_back(new QLabel("P0"));
+        parameterLabels.push_back(new QLabel("P1"));
+        parameterLabels.push_back(new QLabel("P2"));
+        parameterMax.push_back(20.0);
+        parameterMax.push_back(5.0);
         parameterMax.push_back(5.0);
     }
 
@@ -282,11 +301,18 @@ void Widget::constructInitialConditionsControls(int index)
 {
     deleteInitialConditionsControls();
 
-    if (index == 0 || index == 1) // SIR & SIRS models
+    if (index == 0 || index == 1 || index == 3 || index == 4) // SIR / SIRS / SIR + Vital dynamics / SIRS + Vital dynamics models
     {
         initialConditionsLabel.push_back(new QLabel("S"));
         initialConditionsLabel.push_back(new QLabel("I"));
         initialConditionsLabel.push_back(new QLabel("R"));
+    }
+    else if (index == 2) // SIRA model
+    {
+        initialConditionsLabel.push_back(new QLabel("S"));
+        initialConditionsLabel.push_back(new QLabel("I"));
+        initialConditionsLabel.push_back(new QLabel("R"));
+        initialConditionsLabel.push_back(new QLabel("A"));
     }
 
     for (int i = 0; i < static_cast<int>(initialConditionsLabel.size()); i++)
@@ -294,7 +320,8 @@ void Widget::constructInitialConditionsControls(int index)
         QLineEdit *lineEdit = new QLineEdit;
 
         CustomValidator *validator = new CustomValidator(0.0, 1.0, 10, lineEdit);
-        validator->setNotation(QDoubleValidator::StandardNotation);
+        //validator->setNotation(QDoubleValidator::StandardNotation);
+        validator->setNotation(QDoubleValidator::ScientificNotation);
         validator->setLocale(QLocale::English);
 
         lineEdit->setValidator(validator);
@@ -326,9 +353,9 @@ void Widget::constructPlots(int index)
 {
     deletePlots();
 
-    if (index == 0 || index == 1) // SIR / SIRS models
+    if (index == 0 || index == 1 || index == 3 || index == 4) // SIR / SIRS / SIR + Vital dynamics / SIRS + Vital dynamics models
     {
-        QString yLabels[3] = {"S", "I", "R"};
+        QString yLabels[3] = {"Susceptible fraction", "Infected fraction", "Recovered fraction"};
 
         for (int i = 0; i < 6; i++)
         {
@@ -362,6 +389,45 @@ void Widget::constructPlots(int index)
         graphsTabWidget->addTab(plots[0], "Susceptible");
         graphsTabWidget->addTab(plots[1], "Infectious");
         graphsTabWidget->addTab(plots[2], "Recovered");
+    }
+    else if (index == 2) // SIRA model
+    {
+        QString yLabels[4] = {"Susceptible fraction", "Infected fraction", "Recovered fraction", "Asymptomatic fraction"};
+
+        for (int i = 0; i < 8; i++)
+        {
+            plots.push_back(new QCustomPlot(this));
+
+            plots[i]->xAxis->setLabel("t/Tr");
+            plots[i]->yAxis->setLabel(yLabels[i % 4]);
+
+            plots[i]->yAxis->setRange(0.0, 1.0);
+
+            plots[i]->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
+
+            plots[i]->axisRect()->setupFullAxesBox(true);
+            plots[i]->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
+            plots[i]->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
+        }
+
+        // All graphs
+
+        QGridLayout *gridLayout = new QGridLayout;
+        gridLayout->addWidget(plots[4], 0, 0);
+        gridLayout->addWidget(plots[6], 0, 1);
+        gridLayout->addWidget(plots[5], 1, 0);
+        gridLayout->addWidget(plots[7], 1, 1);
+
+        QWidget *gridWidget = new QWidget;
+        gridWidget->setLayout(gridLayout);
+
+        // Add graph tabs
+
+        graphsTabWidget->addTab(gridWidget, "All");
+        graphsTabWidget->addTab(plots[0], "Susceptible");
+        graphsTabWidget->addTab(plots[1], "Infectious");
+        graphsTabWidget->addTab(plots[2], "Recovered");
+        graphsTabWidget->addTab(plots[3], "Asymptomatic");
     }
 }
 
@@ -496,14 +562,14 @@ void Widget::selectSection(int index)
 
 void Widget::addSection()
 {
-    if (modelComboBox->currentIndex() == 0) // SIR model
+    if (sections.empty())
     {
-        if (sections.empty())
+        if (modelComboBox->currentIndex() == 0) // SIR model
         {
             state_type x0(3);
             x0[1] = 1.0e-7;
             x0[2] = 0.0;
-            x0[0] = 1.0 - x0[1] - x0[2];
+            x0[0] = 1.0 - x0[1];
 
             std::vector<double> parameters(1);
             parameters[0] = 2.5;
@@ -520,19 +586,63 @@ void Widget::addSection()
             Section section(3, x0, parameters, parametersMin, parametersMax, t0, t1);
             sections.push_back(section);
         }
-        else
-        {
-            sections.push_back(sections.back());
-        }
-    }
-    else if (modelComboBox->currentIndex() == 1) // SIRS model
-    {
-        if (sections.empty())
+        else if (modelComboBox->currentIndex() == 1) // SIRS model
         {
             state_type x0(3);
             x0[1] = 1.0e-7;
             x0[2] = 0.0;
+            x0[0] = 1.0 - x0[1];
+
+            std::vector<double> parameters(2);
+            parameters[0] = 2.5;
+            parameters[1] = 0.1;
+
+            std::vector<double> parametersMin(2);
+            parametersMin[0] = 0.0;
+            parametersMin[1] = 0.0;
+
+            std::vector<double> parametersMax(2);
+            parametersMax[0] = 20.0;
+            parametersMax[1] = 2.0;
+
+            double t0 = 0.0;
+            double t1 = 50.0;
+
+            Section section(3, x0, parameters, parametersMin, parametersMax, t0, t1);
+            sections.push_back(section);
+        }
+        else if (modelComboBox->currentIndex() == 2) // SIRA model
+        {
+            state_type x0(4);
+            x0[1] = 1.0e-7;
+            x0[2] = 0.0;
+            x0[3] = 0.0;
             x0[0] = 1.0 - x0[1] - x0[2];
+
+            std::vector<double> parameters(2);
+            parameters[0] = 2.5;
+            parameters[1] = 0.1;
+
+            std::vector<double> parametersMin(2);
+            parametersMin[0] = 0.0;
+            parametersMin[1] = 0.0;
+
+            std::vector<double> parametersMax(2);
+            parametersMax[0] = 20.0;
+            parametersMax[1] = 5.0;
+
+            double t0 = 0.0;
+            double t1 = 50.0;
+
+            Section section(4, x0, parameters, parametersMin, parametersMax, t0, t1);
+            sections.push_back(section);
+        }
+        else if (modelComboBox->currentIndex() == 3) // SIR + Vital dynamics model
+        {
+            state_type x0(3);
+            x0[1] = 1.0e-7;
+            x0[2] = 0.0;
+            x0[0] = 1.0 - x0[1];
 
             std::vector<double> parameters(2);
             parameters[0] = 2.5;
@@ -552,10 +662,38 @@ void Widget::addSection()
             Section section(3, x0, parameters, parametersMin, parametersMax, t0, t1);
             sections.push_back(section);
         }
-        else
+        else if (modelComboBox->currentIndex() == 4) // SIRS + Vital dynamics model
         {
-            sections.push_back(sections.back());
+            state_type x0(3);
+            x0[1] = 1.0e-7;
+            x0[2] = 0.0;
+            x0[0] = 1.0 - x0[1];
+
+            std::vector<double> parameters(3);
+            parameters[0] = 2.5;
+            parameters[1] = 0.1;
+            parameters[2] = 0.1;
+
+            std::vector<double> parametersMin(3);
+            parametersMin[0] = 0.0;
+            parametersMin[1] = 0.0;
+            parametersMin[2] = 0.0;
+
+            std::vector<double> parametersMax(3);
+            parametersMax[0] = 20.0;
+            parametersMax[1] = 2.0;
+            parametersMax[2] = 5.0;
+
+            double t0 = 0.0;
+            double t1 = 50.0;
+
+            Section section(3, x0, parameters, parametersMin, parametersMax, t0, t1);
+            sections.push_back(section);
         }
+    }
+    else
+    {
+        sections.push_back(sections.back());
     }
 
     int index = sections.size() - 1;
@@ -731,8 +869,6 @@ void Widget::onParameterLineEditReturnPressed(int index)
     int sectionIndex = sectionComboBox->currentIndex();
     sections[sectionIndex].parameters[index] = parameterLineEdit[index]->text().toDouble();
 
-    qDebug() << parameterLineEdit[index]->text();
-
     int sliderPosition = sections[sectionIndex].getIndexParameter(index, parameterSlider[index]->maximum());
     parameterSlider[index]->setSliderPosition(sliderPosition);
 
@@ -830,6 +966,21 @@ void Widget::integrate(bool interpolation)
         {
             SIRS sirs(sections[i].parameters[0], sections[i].parameters[1]);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirs, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
+        }
+        else if (modelComboBox->currentIndex() == 2) // SIRA model
+        {
+            SIRA sira(sections[i].parameters[0], sections[i].parameters[1]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sira, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
+        }
+        else if (modelComboBox->currentIndex() == 3) // SIR + Vital dynamics model
+        {
+            SIRVitalDynamics sirVitalDynamics(sections[i].parameters[0], sections[i].parameters[1]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirVitalDynamics, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
+        }
+        else if (modelComboBox->currentIndex() == 4) // SIRS + Vital dynamics model
+        {
+            SIRSVitalDynamics sirsVitalDynamics(sections[i].parameters[0], sections[i].parameters[1], sections[i].parameters[2]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirsVitalDynamics, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
         }
     }
 

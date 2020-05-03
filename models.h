@@ -25,30 +25,76 @@ typedef std::vector<double> state_type;
 class SIR
 {
 public:
-    double R0;
+    double P0;
 
-    SIR(double r0): R0(r0){}
+    SIR(double p0): P0(p0){}
 
     void operator()(const state_type &x, state_type &dxdt, const double)
     {
-        dxdt[0] = -R0 * x[0] * x[1];
-        dxdt[1] = (R0 * x[0] - 1) * x[1];
+        dxdt[0] = -P0 * x[0] * x[1];
+        dxdt[1] = (P0 * x[0] - 1) * x[1];
         dxdt[2] = x[1];
+    }
+};
+
+class SIRVitalDynamics
+{
+public:
+    double P0, P1;
+
+    SIRVitalDynamics(double p0, double p1): P0(p0), P1(p1){}
+
+    void operator()(const state_type &x, state_type &dxdt, const double)
+    {
+        dxdt[0] = P1 * (1 - x[0]) - P0 * x[0] * x[1];
+        dxdt[1] = (P0 * x[0] - 1 - P1) * x[1];
+        dxdt[2] = x[1] - P1 * x[2];
     }
 };
 
 class SIRS
 {
 public:
-    double R0, R1;
+    double P0, P1;
 
-    SIRS(double r0, double r1): R0(r0), R1(r1){}
+    SIRS(double p0, double p1): P0(p0), P1(p1){}
 
     void operator()(const state_type &x, state_type &dxdt, const double)
     {
-        dxdt[0] = -R0 * x[0] * x[1] + R1 * x[2];
-        dxdt[1] = (R0 * x[0] - 1) * x[1];
-        dxdt[2] = x[1] - R1 * x[2];
+        dxdt[0] = P1 * x[2] - P0 * x[0] * x[1];
+        dxdt[1] = (P0 * x[0] - 1) * x[1];
+        dxdt[2] = x[1] - P1 * x[2];
+    }
+};
+
+class SIRSVitalDynamics
+{
+public:
+    double P0, P1, P2;
+
+    SIRSVitalDynamics(double p0, double p1, double p2): P0(p0), P1(p1), P2(p2){}
+
+    void operator()(const state_type &x, state_type &dxdt, const double)
+    {
+        dxdt[0] = P1 * x[2] + P2 * (1 - x[0]) - P0 * x[0] * x[1];
+        dxdt[1] = (P0 * x[0] - 1 - P2) * x[1];
+        dxdt[2] = x[1] - (P1 + P2) * x[2];
+    }
+};
+
+class SIRA
+{
+public:
+    double P0, P1;
+
+    SIRA(double p0, double p1): P0(p0), P1(p1){}
+
+    void operator()(const state_type &x, state_type &dxdt, const double)
+    {
+        dxdt[0] = -P0 * (x[1] + P1 * x[3]) * x[0];
+        dxdt[1] = (P0 * x[0] - 1) * x[1];
+        dxdt[2] = x[1] + x[3];
+        dxdt[3] = (P0 * P1 * x[0] - 1) * x[3];
     }
 };
 
