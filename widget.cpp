@@ -128,6 +128,18 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     graphsTabWidget = new QTabWidget;
     graphsTabWidget->setTabPosition(QTabWidget::North);
 
+    allVariablesPlot = new QCustomPlot(this);
+
+    allVariablesPlot->xAxis->setLabel("t/Tr");
+
+    allVariablesPlot->yAxis->setRange(0.0, 1.0);
+
+    allVariablesPlot->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
+
+    allVariablesPlot->axisRect()->setupFullAxesBox(true);
+    allVariablesPlot->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
+    allVariablesPlot->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
+
     constructPlots(0); // SIR
 
     // Main grid layout
@@ -347,6 +359,7 @@ void Widget::deletePlots()
 {
     graphsTabWidget->clear();
     plots.clear();
+    allVariablesPlot->clearGraphs();
 }
 
 void Widget::constructPlots(int index)
@@ -383,9 +396,14 @@ void Widget::constructPlots(int index)
         QWidget *gridWidget = new QWidget;
         gridWidget->setLayout(gridLayout);
 
+        // All variables plot
+
+        allVariablesPlot->yAxis->setLabel("S, I, R fractions");
+
         // Add graph tabs
 
         graphsTabWidget->addTab(gridWidget, "All");
+        graphsTabWidget->addTab(allVariablesPlot, "Joint");
         graphsTabWidget->addTab(plots[0], "Susceptible");
         graphsTabWidget->addTab(plots[1], "Infectious");
         graphsTabWidget->addTab(plots[2], "Recovered");
@@ -421,9 +439,14 @@ void Widget::constructPlots(int index)
         QWidget *gridWidget = new QWidget;
         gridWidget->setLayout(gridLayout);
 
+        // All variables plot
+
+        allVariablesPlot->yAxis->setLabel("S, I, R, A fractions");
+
         // Add graph tabs
 
         graphsTabWidget->addTab(gridWidget, "All");
+        graphsTabWidget->addTab(allVariablesPlot, "Joint");
         graphsTabWidget->addTab(plots[0], "Susceptible");
         graphsTabWidget->addTab(plots[1], "Infectious");
         graphsTabWidget->addTab(plots[2], "Recovered");
@@ -435,12 +458,18 @@ void Widget::setPlots()
 {
     unsigned long jmax = sections.size() - 1;
 
+    // Compute left and right data for sections until last one
+
     for (unsigned long j = 0; j < jmax; j++)
     {
         sections[j].setAbscissaOrdinate(sections[j + 1].timeStart);
     }
 
+    // Compute data for last section
+
     sections[jmax].setAbscissaOrdinate();
+
+    // Set plots data
 
     for (unsigned long i = 0; i < plots.size(); i++)
     {
@@ -460,6 +489,157 @@ void Widget::setPlots()
 
         plots[i]->xAxis->rescale();
         plots[i]->replot();
+    }
+
+    // Set data for all variables plot
+
+    int lastSectionIndex = sections.size() - 1;
+
+    for (int i = 0; i < lastSectionIndex; i++)
+    {
+        for (int j = 0; j < sections[i].dim; j++)
+        {
+            allVariablesPlot->graph(i * sections[i].dim + j)->setData(sections[i].abscissaLeft, sections[i].ordinateLeft[j], true);
+        }
+    }
+
+    for (int j = 0; j < sections[lastSectionIndex].dim; j++)
+    {
+        allVariablesPlot->graph(lastSectionIndex * sections[lastSectionIndex].dim + j)->setData(sections[lastSectionIndex].abscissa, sections[lastSectionIndex].ordinate[j], true);
+    }
+
+    allVariablesPlot->xAxis->rescale();
+    allVariablesPlot->replot();
+}
+
+void Widget::setGraphsOnAddSection(int index)
+{
+    if (index == 0) // Adding first section
+    {
+        QPen pen = QPen(colors[0]);
+        pen.setStyle(Qt::SolidLine);
+        pen.setWidth(3);
+
+        // Plots array: add one graph per plot
+
+        for (unsigned long i = 0; i < plots.size(); i++)
+        {
+            plots[i]->addGraph();
+            plots[i]->graph(0)->setPen(pen);
+        }
+
+        // All variables plot: add as many graphs as model dimensions
+
+        for (int i = 0; i < sections[0].dim; i++)
+        {
+            allVariablesPlot->addGraph();
+            allVariablesPlot->graph(i)->setPen(pen);
+        }
+    }
+    else // Adding subsequent section
+    {
+        // Plots array
+
+        // Remove last graph (previous section) from plots
+
+        for (unsigned long i = 0; i < plots.size(); i++)
+        {
+            int numGraphs = plots[i]->graphCount();
+
+            plots[i]->removeGraph(numGraphs - 1);
+        }
+
+        // Add two graphs (left and right from previous section) to plots
+
+        for (unsigned long i = 0; i < plots.size(); i++)
+        {
+            plots[i]->addGraph();
+            plots[i]->addGraph();
+
+            int numGraphs = plots[i]->graphCount();
+
+            QPen pen = QPen(colors[(index - 1) % 14]);
+            pen.setStyle(Qt::SolidLine);
+            pen.setWidth(3);
+
+            plots[i]->graph(numGraphs - 2)->setPen(pen);
+
+            pen.setStyle(Qt::DashLine);
+            pen.setWidth(1);
+
+            plots[i]->graph(numGraphs - 1)->setPen(pen);
+        }
+
+        QPen pen = QPen(colors[index % 14]);
+        pen.setStyle(Qt::SolidLine);
+        pen.setWidth(3);
+
+        // Add one graph (added section) to plots
+
+        for (unsigned long i = 0; i < plots.size(); i++)
+        {
+            plots[i]->addGraph();
+
+            int numGraphs = plots[i]->graphCount();
+
+            plots[i]->graph(numGraphs - 1)->setPen(pen);
+        }
+
+        // All variables plot
+
+        // Add as many graphs to plot as dimensions of the model
+
+        for (int i = 0; i < sections[0].dim; i++)
+        {
+            allVariablesPlot->addGraph();
+
+            int numGraphs = allVariablesPlot->graphCount();
+
+            allVariablesPlot->graph(numGraphs - 1)->setPen(pen);
+        }
+
+        setPlots();
+    }
+}
+
+void Widget::setGraphsOnRemoveSection(int index)
+{
+    QPen pen = QPen(colors[(index - 1) % 14]);
+    pen.setStyle(Qt::SolidLine);
+    pen.setWidth(3);
+
+    // Plots array
+
+    for (unsigned long i = 0; i < plots.size(); i++)
+    {
+        int numGraphs = plots[i]->graphCount();
+
+        // Remove graph from last section
+
+        plots[i]->removeGraph(numGraphs - 1);
+
+        // Remove all graphs from last section until removed section
+
+        for (int j = numGraphs - 2; j >= 2 * index - 1; j--)
+        {
+            plots[i]->removeGraph(j);
+        }
+
+        numGraphs = plots[i]->graphCount();
+
+        plots[i]->graph(numGraphs - 1)->setPen(pen);
+
+        plots[i]->xAxis->rescale();
+        plots[i]->replot();
+    }
+
+    // All variables plot
+
+    int numGraphs = allVariablesPlot->graphCount();
+
+    for (int i = numGraphs - 1; i >= sections[0].dim * index; i--)
+    {
+        allVariablesPlot->removeGraph(i);
     }
 }
 
@@ -712,61 +892,10 @@ void Widget::addSection()
         parameterSlider[i]->setSliderPosition(sliderPosition);
     }
 
-    if (index > 0)
+    setGraphsOnAddSection(index);
+
+    if (index == 0)
     {
-        for (unsigned long i = 0; i < plots.size(); i++)
-        {
-            int numGraphs = plots[i]->graphCount();
-
-            plots[i]->removeGraph(numGraphs - 1);
-        }
-
-        for (unsigned long i = 0; i < plots.size(); i++)
-        {
-            plots[i]->addGraph();
-            plots[i]->addGraph();
-
-            int numGraphs = plots[i]->graphCount();
-
-            QPen pen = QPen(colors[(index - 1) % 14]);
-            pen.setStyle(Qt::SolidLine);
-            pen.setWidth(3);
-
-            plots[i]->graph(numGraphs - 2)->setPen(pen);
-
-            pen.setStyle(Qt::DashLine);
-            pen.setWidth(1);
-
-            plots[i]->graph(numGraphs - 1)->setPen(pen);
-        }
-
-        QPen pen = QPen(colors[index % 14]);
-        pen.setStyle(Qt::SolidLine);
-        pen.setWidth(3);
-
-        for (unsigned long i = 0; i < plots.size(); i++)
-        {
-            plots[i]->addGraph();
-
-            int numGraphs = plots[i]->graphCount();
-
-            plots[i]->graph(numGraphs - 1)->setPen(pen);
-        }
-
-        setPlots();
-    }
-    else
-    {
-        QPen pen = QPen(colors[0]);
-        pen.setStyle(Qt::SolidLine);
-        pen.setWidth(3);
-
-        for (unsigned long i = 0; i < plots.size(); i++)
-        {
-            plots[i]->addGraph();
-            plots[i]->graph(0)->setPen(pen);
-        }
-
         integrate(false);
     }
 }
@@ -783,28 +912,7 @@ void Widget::removeSection()
         sectionComboBox->removeItem(j);
     }
 
-    QPen pen = QPen(colors[(index - 1) % 14]);
-    pen.setStyle(Qt::SolidLine);
-    pen.setWidth(3);
-
-    for (unsigned long i = 0; i < plots.size(); i++)
-    {
-        int numGraphs = plots[i]->graphCount();
-
-        plots[i]->removeGraph(numGraphs - 1);
-
-        for (int j = numGraphs - 2; j >= 2 * index - 1; j--)
-        {
-            plots[i]->removeGraph(j);
-        }
-
-        numGraphs = plots[i]->graphCount();
-
-        plots[i]->graph(numGraphs - 1)->setPen(pen);
-
-        plots[i]->rescaleAxes();
-        plots[i]->replot();
-    }
+    setGraphsOnRemoveSection(index);
 
     if (index == 0)
     {

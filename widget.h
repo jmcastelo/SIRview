@@ -77,6 +77,7 @@ private:
     std::vector<QSlider*> parameterSlider;
 
     std::vector<QCustomPlot*> plots;
+    QCustomPlot *allVariablesPlot;
     QTabWidget *graphsTabWidget;
     Qt::GlobalColor colors[14];
 
@@ -104,6 +105,8 @@ private:
     void deletePlots();
     void constructPlots(int index);
     void setPlots();
+    void setGraphsOnAddSection(int index);
+    void setGraphsOnRemoveSection(int index);
 
     void deleteSections();
 
