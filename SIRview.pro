@@ -17,12 +17,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     main.cpp \
+    modelframework.cpp \
     qcustomplot.cpp \
     section.cpp \
     widget.cpp
 
 HEADERS += \
     customvalidator.h \
+    modelframework.h \
     models.h \
     qcustomplot.h \
     section.h \

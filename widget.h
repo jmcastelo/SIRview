@@ -19,9 +19,8 @@
 #define WIDGET_H
 
 #include "models.h"
-#include "section.h"
+#include "modelframework.h"
 #include "customvalidator.h"
-#include "qcustomplot.h"
 #include <vector>
 #include <boost/numeric/odeint.hpp>
 #include <QWidget>
@@ -33,12 +32,10 @@
 #include <QHBoxLayout>
 #include <QDoubleValidator>
 #include <QLineEdit>
-#include <QDoubleSpinBox>
 #include <QSlider>
-#include <QGroupBox>
 #include <QGridLayout>
 
-class Widget : public QWidget
+class Widget: public QWidget
 {
     Q_OBJECT
 
@@ -47,10 +44,7 @@ public:
     ~Widget();
 
 private:
-    std::vector<Section> sections;
-
-    double timeMin;
-    double timeMax;
+    std::vector<ModelFramework*> models;
 
     QComboBox *modelComboBox;
 
@@ -69,19 +63,13 @@ private:
 
     QVBoxLayout *initialConditionsVBoxLayout;
     std::vector<QLineEdit*> initialConditionsLineEdit;
-    std::vector<QLabel*> initialConditionsLabel;
     QLabel *sumInitialConditionsLabel;
 
     QVBoxLayout *parameterVBoxLayout;
     std::vector<QLineEdit*> parameterLineEdit;
     std::vector<QSlider*> parameterSlider;
 
-    std::vector<QCustomPlot*> plots;
-    QCustomPlot *allVariablesPlot;
     QTabWidget *graphsTabWidget;
-    Qt::GlobalColor colors[14];
-
-    std::vector<QCustomPlot*> graphs;
 
     void onTimeStartLineEditReturnPressed();
     void onTimeEndLineEditReturnPressed();
@@ -97,27 +85,26 @@ private:
     void updateSumInitialConditionsLabel();
 
     void deleteParameterControls();
-    void constructParameterControls(int index);
+    void constructParameterControls(int modelIndex);
 
     void deleteInitialConditionsControls();
-    void constructInitialConditionsControls(int index);
+    void constructInitialConditionsControls(int modelIndex);
 
-    void deletePlots();
-    void constructPlots(int index);
-    void setPlots();
-    void setGraphsOnAddSection(int index);
-    void setGraphsOnRemoveSection(int index);
+    void setPlotTabs(int modelIndex);
 
-    void deleteSections();
+    void updateSectionComboBox(int modelIndex);
 
-    void setTimeStartMinMax(int index);
-    void setTimeEndMinMax(int index);
+    void updateSectionControls();
 
+    void setTimeStartMinMax(int sectionIndex);
+    void setTimeEndMinMax(int sectionIndex);
+
+    void addInitialSections();
     void selectSection(int index);
     void addSection();
     void removeSection();
 
-    void integrate(bool interpolation);
+    void integrate(int modelIndex, bool interpolation);
 };
 
 #endif // WIDGET_H

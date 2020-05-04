@@ -19,36 +19,25 @@
 
 Widget::Widget(QWidget *parent): QWidget(parent)
 {
-    // Init section variables
+    // Models
 
-    timeMin = 0.0;
-    timeMax = 1000.0;
-
-    colors[0] = Qt::black;
-    colors[1] = Qt::red;
-    colors[2] = Qt::green;
-    colors[3] = Qt::blue;
-    colors[4] = Qt::darkRed;
-    colors[5] = Qt::darkGreen;
-    colors[6] = Qt::darkBlue;
-    colors[7] = Qt::magenta;
-    colors[8] = Qt::yellow;
-    colors[9] = Qt::cyan;
-    colors[10] = Qt::darkMagenta;
-    colors[11] = Qt::darkYellow;
-    colors[12] = Qt::darkCyan;
-    colors[13] = Qt::darkGray;
+    models.push_back(new ModelFramework("SIR", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0"}, {0.0}, {20.0}, {2.5}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ModelFramework("SIRS", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ModelFramework("SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0, 0.0}));
+    models.push_back(new ModelFramework("SIR + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ModelFramework("SIRS + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1", "P3"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
 
     // Model selection controls
 
     QLabel *modelLabel = new QLabel("Model");
 
     modelComboBox = new QComboBox;
-    modelComboBox->addItem("SIR");
-    modelComboBox->addItem("SIRS");
-    modelComboBox->addItem("SIRA");
-    modelComboBox->addItem("SIR + Vital dynamics");
-    modelComboBox->addItem("SIRS + Vital dynamics");
+
+    for (unsigned long i = 0; i < models.size(); i++)
+    {
+        modelComboBox->addItem(models[i]->name);
+    }
+
     modelComboBox->setCurrentIndex(0);
 
     // Section management controls
@@ -69,7 +58,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     timeStartLineEdit = new QLineEdit;
 
-    timeStartDoubleValidator = new CustomValidator(timeMin, timeMax, 10, timeStartLineEdit);
+    timeStartDoubleValidator = new CustomValidator(models[0]->timeMin, models[0]->timeMax, 10, timeStartLineEdit);
     timeStartDoubleValidator->setNotation(QDoubleValidator::StandardNotation);
     timeStartDoubleValidator->setLocale(QLocale::English);
 
@@ -82,7 +71,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     timeEndLineEdit = new QLineEdit;
 
-    timeEndDoubleValidator = new CustomValidator(timeMin, timeMax, 10, timeEndLineEdit);
+    timeEndDoubleValidator = new CustomValidator(models[0]->timeMin, models[0]->timeMax, 10, timeEndLineEdit);
     timeEndDoubleValidator->setNotation(QDoubleValidator::StandardNotation);
     timeEndDoubleValidator->setLocale(QLocale::English);
 
@@ -97,13 +86,13 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     initialConditionsVBoxLayout = new QVBoxLayout;
 
-    constructInitialConditionsControls(0);
+    //constructInitialConditionsControls(0);
 
     QLabel *parameterLabel = new QLabel("Parameters");
 
     parameterVBoxLayout = new QVBoxLayout;
 
-    constructParameterControls(0); // SIR
+    //constructParameterControls(0);
 
     // Main controls vertical layout & widget
 
@@ -128,20 +117,6 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     graphsTabWidget = new QTabWidget;
     graphsTabWidget->setTabPosition(QTabWidget::North);
 
-    allVariablesPlot = new QCustomPlot(this);
-
-    allVariablesPlot->xAxis->setLabel("t/Tr");
-
-    allVariablesPlot->yAxis->setRange(0.0, 1.0);
-
-    allVariablesPlot->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
-
-    allVariablesPlot->axisRect()->setupFullAxesBox(true);
-    allVariablesPlot->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
-    allVariablesPlot->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
-
-    constructPlots(0); // SIR
-
     // Main grid layout
 
     QGridLayout *mainGridLayout = new QGridLayout;
@@ -150,11 +125,30 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     mainGridLayout->setColumnStretch(0, 0);
     mainGridLayout->setColumnStretch(1, 1);
 
+    // Signals + Slots
+
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ constructParameterControls(modelIndex); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ constructInitialConditionsControls(modelIndex); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ setPlotTabs(modelIndex); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) updateSectionControls(); updateInitialConditionsControls(); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ updateSectionComboBox(modelIndex); });
+    connect(sectionComboBox, QOverload<int>::of(&QComboBox::activated), [=](int sectionIndex){ if (sectionIndex >= 0) selectSection(sectionIndex); });
+    connect(addSectionPushButton, &QPushButton::clicked, this, &Widget::addSection);
+    connect(removeSectionPushButton, &QPushButton::clicked, this, &Widget::removeSection);
+    connect(timeStartLineEdit, &QLineEdit::returnPressed, this, &Widget::onTimeStartLineEditReturnPressed);
+    connect(timeEndLineEdit, &QLineEdit::returnPressed, this, &Widget::onTimeEndLineEditReturnPressed);
+    connect(timeStartSlider, &QSlider::sliderMoved, this, &Widget::onTimeStartSliderValueChanged);
+    connect(timeEndSlider, &QSlider::sliderMoved, this, &Widget::onTimeEndSliderValueChanged);
+
     // Sections setup
 
-    addSection();
-    setTimeStartMinMax(0);
-    setTimeEndMinMax(0);
+    constructInitialConditionsControls(0);
+    constructParameterControls(0);
+    addInitialSections();
+
+    // Set plot tabs
+
+    setPlotTabs(0);
 
     // Main widget
 
@@ -163,20 +157,6 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     setWindowTitle("SIRview");
 
     resize(1200, 800);
-
-    // Signals + Slots
-
-    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ constructParameterControls(index); });
-    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ constructInitialConditionsControls(index); });
-    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ constructPlots(index); });
-    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ Q_UNUSED(index) deleteSections(); });
-    connect(sectionComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index){ if (index >= 0) selectSection(index); });
-    connect(addSectionPushButton, &QPushButton::clicked, this, &Widget::addSection);
-    connect(removeSectionPushButton, &QPushButton::clicked, this, &Widget::removeSection);
-    connect(timeStartLineEdit, &QLineEdit::returnPressed, this, &Widget::onTimeStartLineEditReturnPressed);
-    connect(timeEndLineEdit, &QLineEdit::returnPressed, this, &Widget::onTimeEndLineEditReturnPressed);
-    connect(timeStartSlider, &QSlider::sliderMoved, this, &Widget::onTimeStartSliderValueChanged);
-    connect(timeEndSlider, &QSlider::sliderMoved, this, &Widget::onTimeEndSliderValueChanged);
 }
 
 Widget::~Widget()
@@ -206,62 +186,41 @@ void Widget::deleteParameterControls()
             while(!pQLayout->isEmpty())
             {
                 QWidget *pQWidget = pQLayout->takeAt(0)->widget();
-                delete pQWidget;
+
+                if (QLabel *pQLabel = qobject_cast<QLabel*>(pQWidget))
+                {
+                    pQLayout->removeWidget(pQLabel);
+                    pQLabel->hide();
+                }
+                else
+                {
+                    delete pQWidget;
+                }
             }
             delete pQLayout;
         }
     }
 }
 
-void Widget::constructParameterControls(int index)
+void Widget::constructParameterControls(int modelIndex)
 {
     deleteParameterControls();
 
-    std::vector<QLabel*> parameterLabels;
-    std::vector<double> parameterMax;
-
-    if (index == 0) // SIR model
-    {
-        parameterLabels.push_back(new QLabel("P0"));
-        parameterMax.push_back(20.0);
-    }
-    else if (index == 1 || index == 2) // SIRS / SIRA models
-    {
-        parameterLabels.push_back(new QLabel("P0"));
-        parameterLabels.push_back(new QLabel("P1"));
-        parameterMax.push_back(20.0);
-        parameterMax.push_back(2.0);
-    }
-    else if (index == 3) // SIR + Vital dynamics
-    {
-        parameterLabels.push_back(new QLabel("P0"));
-        parameterLabels.push_back(new QLabel("P1"));
-        parameterMax.push_back(20.0);
-        parameterMax.push_back(5.0);
-    }
-    else if (index == 4) // SIRS + Vital dynamics
-    {
-        parameterLabels.push_back(new QLabel("P0"));
-        parameterLabels.push_back(new QLabel("P1"));
-        parameterLabels.push_back(new QLabel("P2"));
-        parameterMax.push_back(20.0);
-        parameterMax.push_back(5.0);
-        parameterMax.push_back(5.0);
-    }
-
-    for (int i = 0; i < static_cast<int>(parameterMax.size()); i++)
+    for (int i = 0; i < models[modelIndex]->numParameters; i++)
     {
         QLineEdit *lineEdit = new QLineEdit;
 
-        CustomValidator *validator = new CustomValidator(0.0, parameterMax[i], 10, lineEdit);
+        CustomValidator *validator = new CustomValidator(models[modelIndex]->parameterMin[i], models[modelIndex]->parameterMax[i], 10, lineEdit);
         validator->setNotation(QDoubleValidator::StandardNotation);
         validator->setLocale(QLocale::English);
 
         lineEdit->setValidator(validator);
 
+        models[modelIndex]->parameterNames[i];
+
         QHBoxLayout *hBoxLayout = new QHBoxLayout;
 
-        hBoxLayout->addWidget(parameterLabels[i]);
+        hBoxLayout->addWidget(models[modelIndex]->parameterNames[i]);
         hBoxLayout->addWidget(lineEdit);
 
         QSlider *slider = new QSlider(Qt::Horizontal);
@@ -271,6 +230,8 @@ void Widget::constructParameterControls(int index)
 
         parameterVBoxLayout->addLayout(hBoxLayout);
         parameterVBoxLayout->addWidget(slider);
+
+        models[modelIndex]->parameterNames[i]->show();
 
         parameterLineEdit.push_back(lineEdit);
         parameterSlider.push_back(slider);
@@ -287,7 +248,6 @@ void Widget::deleteInitialConditionsControls()
         initialConditionsLineEdit[i]->disconnect();
     }
 
-    initialConditionsLabel.clear();
     initialConditionsLineEdit.clear();
 
     QLayoutItem *child;
@@ -302,32 +262,27 @@ void Widget::deleteInitialConditionsControls()
             while(!pQLayout->isEmpty())
             {
                 QWidget *pQWidget = pQLayout->takeAt(0)->widget();
-                delete pQWidget;
+                QLabel *pQLabel = qobject_cast<QLabel*>(pQWidget);
+                if (pQLabel && (pQLabel != sumInitialConditionsLabel))
+                {
+                    pQLayout->removeWidget(pQLabel);
+                    pQLabel->hide();
+                }
+                else
+                {
+                    delete pQWidget;
+                }
             }
             delete pQLayout;
         }
     }
 }
 
-void Widget::constructInitialConditionsControls(int index)
+void Widget::constructInitialConditionsControls(int modelIndex)
 {
     deleteInitialConditionsControls();
 
-    if (index == 0 || index == 1 || index == 3 || index == 4) // SIR / SIRS / SIR + Vital dynamics / SIRS + Vital dynamics models
-    {
-        initialConditionsLabel.push_back(new QLabel("S"));
-        initialConditionsLabel.push_back(new QLabel("I"));
-        initialConditionsLabel.push_back(new QLabel("R"));
-    }
-    else if (index == 2) // SIRA model
-    {
-        initialConditionsLabel.push_back(new QLabel("S"));
-        initialConditionsLabel.push_back(new QLabel("I"));
-        initialConditionsLabel.push_back(new QLabel("R"));
-        initialConditionsLabel.push_back(new QLabel("A"));
-    }
-
-    for (int i = 0; i < static_cast<int>(initialConditionsLabel.size()); i++)
+    for (int i = 0; i < models[modelIndex]->dimension; i++)
     {
         QLineEdit *lineEdit = new QLineEdit;
 
@@ -340,10 +295,12 @@ void Widget::constructInitialConditionsControls(int index)
 
         QHBoxLayout *hBoxLayout = new QHBoxLayout;
 
-        hBoxLayout->addWidget(initialConditionsLabel[i]);;
+        hBoxLayout->addWidget(models[modelIndex]->variableShortNames[i]);
         hBoxLayout->addWidget(lineEdit);
 
         initialConditionsVBoxLayout->addLayout(hBoxLayout);
+
+        models[modelIndex]->variableShortNames[i]->show();
 
         initialConditionsLineEdit.push_back(lineEdit);
 
@@ -355,374 +312,84 @@ void Widget::constructInitialConditionsControls(int index)
     initialConditionsVBoxLayout->addWidget(sumInitialConditionsLabel);
 }
 
-void Widget::deletePlots()
+void Widget::setPlotTabs(int modelIndex)
 {
     graphsTabWidget->clear();
-    plots.clear();
-    allVariablesPlot->clearGraphs();
+
+    graphsTabWidget->addTab(models[modelIndex]->plotsGridWidget, "All");
+    graphsTabWidget->addTab(models[modelIndex]->allVariablesPlot, "Joint");
+
+    for (int i = 0; i < models[modelIndex]->dimension; i++)
+    {
+        graphsTabWidget->addTab(models[modelIndex]->plots[i], models[modelIndex]->variableLongNames[i]->text());
+    }
 }
 
-void Widget::constructPlots(int index)
+void Widget::setTimeStartMinMax(int sectionIndex)
 {
-    deletePlots();
+    int modelIndex = modelComboBox->currentIndex();
 
-    if (index == 0 || index == 1 || index == 3 || index == 4) // SIR / SIRS / SIR + Vital dynamics / SIRS + Vital dynamics models
-    {
-        QString yLabels[3] = {"Susceptible fraction", "Infected fraction", "Recovered fraction"};
+    models[modelIndex]->setTimeStartMinMax(sectionIndex);
 
-        for (int i = 0; i < 6; i++)
-        {
-            plots.push_back(new QCustomPlot(this));
-
-            plots[i]->xAxis->setLabel("t/Tr");
-            plots[i]->yAxis->setLabel(yLabels[i % 3]);
-
-            plots[i]->yAxis->setRange(0.0, 1.0);
-
-            plots[i]->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
-
-            plots[i]->axisRect()->setupFullAxesBox(true);
-            plots[i]->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
-            plots[i]->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
-        }
-
-        // All graphs
-
-        QGridLayout *gridLayout = new QGridLayout;
-        gridLayout->addWidget(plots[3], 0, 0);
-        gridLayout->addWidget(plots[5], 0, 1);
-        gridLayout->addWidget(plots[4], 1, 0, -1, -1);
-
-        QWidget *gridWidget = new QWidget;
-        gridWidget->setLayout(gridLayout);
-
-        // All variables plot
-
-        allVariablesPlot->yAxis->setLabel("S, I, R fractions");
-
-        // Add graph tabs
-
-        graphsTabWidget->addTab(gridWidget, "All");
-        graphsTabWidget->addTab(allVariablesPlot, "Joint");
-        graphsTabWidget->addTab(plots[0], "Susceptible");
-        graphsTabWidget->addTab(plots[1], "Infectious");
-        graphsTabWidget->addTab(plots[2], "Recovered");
-    }
-    else if (index == 2) // SIRA model
-    {
-        QString yLabels[4] = {"Susceptible fraction", "Infected fraction", "Recovered fraction", "Asymptomatic fraction"};
-
-        for (int i = 0; i < 8; i++)
-        {
-            plots.push_back(new QCustomPlot(this));
-
-            plots[i]->xAxis->setLabel("t/Tr");
-            plots[i]->yAxis->setLabel(yLabels[i % 4]);
-
-            plots[i]->yAxis->setRange(0.0, 1.0);
-
-            plots[i]->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
-
-            plots[i]->axisRect()->setupFullAxesBox(true);
-            plots[i]->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
-            plots[i]->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
-        }
-
-        // All graphs
-
-        QGridLayout *gridLayout = new QGridLayout;
-        gridLayout->addWidget(plots[4], 0, 0);
-        gridLayout->addWidget(plots[6], 0, 1);
-        gridLayout->addWidget(plots[5], 1, 0);
-        gridLayout->addWidget(plots[7], 1, 1);
-
-        QWidget *gridWidget = new QWidget;
-        gridWidget->setLayout(gridLayout);
-
-        // All variables plot
-
-        allVariablesPlot->yAxis->setLabel("S, I, R, A fractions");
-
-        // Add graph tabs
-
-        graphsTabWidget->addTab(gridWidget, "All");
-        graphsTabWidget->addTab(allVariablesPlot, "Joint");
-        graphsTabWidget->addTab(plots[0], "Susceptible");
-        graphsTabWidget->addTab(plots[1], "Infectious");
-        graphsTabWidget->addTab(plots[2], "Recovered");
-        graphsTabWidget->addTab(plots[3], "Asymptomatic");
-    }
+    timeStartDoubleValidator->setBottom(models[modelIndex]->sections[sectionIndex].timeStartMin);
+    timeStartDoubleValidator->setTop(models[modelIndex]->sections[sectionIndex].timeStartMax);
 }
 
-void Widget::setPlots()
+void Widget::setTimeEndMinMax(int sectionIndex)
 {
-    unsigned long jmax = sections.size() - 1;
+    int modelIndex = modelComboBox->currentIndex();
 
-    // Compute left and right data for sections until last one
+    models[modelIndex]->setTimeEndMinMax(sectionIndex);
 
-    for (unsigned long j = 0; j < jmax; j++)
-    {
-        sections[j].setAbscissaOrdinate(sections[j + 1].timeStart);
-    }
-
-    // Compute data for last section
-
-    sections[jmax].setAbscissaOrdinate();
-
-    // Set plots data
-
-    for (unsigned long i = 0; i < plots.size(); i++)
-    {
-        int numGraphs = plots[i]->graphCount();
-
-        int k = 0;
-
-        for (int j = 0; j < numGraphs - 2; j += 2)
-        {
-            plots[i]->graph(j)->setData(sections[k].abscissaLeft, sections[k].ordinateLeft[i % sections[k].dim], true);
-            plots[i]->graph(j + 1)->setData(sections[k].abscissaRight, sections[k].ordinateRight[i % sections[k].dim], true);
-
-            k++;
-        }
-
-        plots[i]->graph(numGraphs - 1)->setData(sections[k].abscissa, sections[k].ordinate[i % sections[k].dim], true);
-
-        plots[i]->xAxis->rescale();
-        plots[i]->replot();
-    }
-
-    // Set data for all variables plot
-
-    int lastSectionIndex = sections.size() - 1;
-
-    for (int i = 0; i < lastSectionIndex; i++)
-    {
-        for (int j = 0; j < sections[i].dim; j++)
-        {
-            allVariablesPlot->graph(i * sections[i].dim + j)->setData(sections[i].abscissaLeft, sections[i].ordinateLeft[j], true);
-        }
-    }
-
-    for (int j = 0; j < sections[lastSectionIndex].dim; j++)
-    {
-        allVariablesPlot->graph(lastSectionIndex * sections[lastSectionIndex].dim + j)->setData(sections[lastSectionIndex].abscissa, sections[lastSectionIndex].ordinate[j], true);
-    }
-
-    allVariablesPlot->xAxis->rescale();
-    allVariablesPlot->replot();
+    timeEndDoubleValidator->setBottom(models[modelIndex]->sections[sectionIndex].timeEndMin);
+    timeEndDoubleValidator->setTop(models[modelIndex]->sections[sectionIndex].timeEndMax);
 }
 
-void Widget::setGraphsOnAddSection(int index)
-{
-    if (index == 0) // Adding first section
-    {
-        QPen pen = QPen(colors[0]);
-        pen.setStyle(Qt::SolidLine);
-        pen.setWidth(3);
-
-        // Plots array: add one graph per plot
-
-        for (unsigned long i = 0; i < plots.size(); i++)
-        {
-            plots[i]->addGraph();
-            plots[i]->graph(0)->setPen(pen);
-        }
-
-        // All variables plot: add as many graphs as model dimensions
-
-        for (int i = 0; i < sections[0].dim; i++)
-        {
-            allVariablesPlot->addGraph();
-            allVariablesPlot->graph(i)->setPen(pen);
-        }
-    }
-    else // Adding subsequent section
-    {
-        // Plots array
-
-        // Remove last graph (previous section) from plots
-
-        for (unsigned long i = 0; i < plots.size(); i++)
-        {
-            int numGraphs = plots[i]->graphCount();
-
-            plots[i]->removeGraph(numGraphs - 1);
-        }
-
-        // Add two graphs (left and right from previous section) to plots
-
-        for (unsigned long i = 0; i < plots.size(); i++)
-        {
-            plots[i]->addGraph();
-            plots[i]->addGraph();
-
-            int numGraphs = plots[i]->graphCount();
-
-            QPen pen = QPen(colors[(index - 1) % 14]);
-            pen.setStyle(Qt::SolidLine);
-            pen.setWidth(3);
-
-            plots[i]->graph(numGraphs - 2)->setPen(pen);
-
-            pen.setStyle(Qt::DashLine);
-            pen.setWidth(1);
-
-            plots[i]->graph(numGraphs - 1)->setPen(pen);
-        }
-
-        QPen pen = QPen(colors[index % 14]);
-        pen.setStyle(Qt::SolidLine);
-        pen.setWidth(3);
-
-        // Add one graph (added section) to plots
-
-        for (unsigned long i = 0; i < plots.size(); i++)
-        {
-            plots[i]->addGraph();
-
-            int numGraphs = plots[i]->graphCount();
-
-            plots[i]->graph(numGraphs - 1)->setPen(pen);
-        }
-
-        // All variables plot
-
-        // Add as many graphs to plot as dimensions of the model
-
-        for (int i = 0; i < sections[0].dim; i++)
-        {
-            allVariablesPlot->addGraph();
-
-            int numGraphs = allVariablesPlot->graphCount();
-
-            allVariablesPlot->graph(numGraphs - 1)->setPen(pen);
-        }
-
-        setPlots();
-    }
-}
-
-void Widget::setGraphsOnRemoveSection(int index)
-{
-    QPen pen = QPen(colors[(index - 1) % 14]);
-    pen.setStyle(Qt::SolidLine);
-    pen.setWidth(3);
-
-    // Plots array
-
-    for (unsigned long i = 0; i < plots.size(); i++)
-    {
-        int numGraphs = plots[i]->graphCount();
-
-        // Remove graph from last section
-
-        plots[i]->removeGraph(numGraphs - 1);
-
-        // Remove all graphs from last section until removed section
-
-        for (int j = numGraphs - 2; j >= 2 * index - 1; j--)
-        {
-            plots[i]->removeGraph(j);
-        }
-
-        numGraphs = plots[i]->graphCount();
-
-        plots[i]->graph(numGraphs - 1)->setPen(pen);
-
-        plots[i]->xAxis->rescale();
-        plots[i]->replot();
-    }
-
-    // All variables plot
-
-    int numGraphs = allVariablesPlot->graphCount();
-
-    for (int i = numGraphs - 1; i >= sections[0].dim * index; i--)
-    {
-        allVariablesPlot->removeGraph(i);
-    }
-}
-
-void Widget::setTimeStartMinMax(int index)
-{
-    double t0 = timeMin;
-    double t1 = sections[index].timeEnd;
-
-    if (index - 1 > 0)
-    {
-        t0 = sections[index - 1].timeStart;
-    }
-
-    if (index + 1 < static_cast<int>(sections.size()))
-    {
-        t1 = sections[index + 1].timeStart;
-    }
-
-    sections[index].timeStartMin = t0;
-    timeStartDoubleValidator->setBottom(t0);
-
-    sections[index].timeStartMax = t1;
-    timeStartDoubleValidator->setTop(t1);
-}
-
-void Widget::setTimeEndMinMax(int index)
-{
-    double t0 = sections[index].timeStart;
-    double t1 = timeMax;
-
-    if (index + 1 < static_cast<int>(sections.size()))
-    {
-        t0 = sections[index + 1].timeStart;
-    }
-
-    sections[index].timeEndMin = t0;
-    timeEndDoubleValidator->setBottom(t0);
-
-    sections[index].timeEndMax = t1;
-    timeEndDoubleValidator->setTop(t1);
-}
-
-void Widget::deleteSections()
+void Widget::updateSectionComboBox(int modelIndex)
 {
     sectionComboBox->clear();
 
-    sections.clear();
+    for (unsigned long i = 0; i < models[modelIndex]->sections.size(); i++)
+    {
+        sectionComboBox->addItem(QString("Section %1").arg(i + 1));
+    }
 
-    addSection();
-    setTimeStartMinMax(0);
-    setTimeEndMinMax(0);
+    sectionComboBox->setCurrentIndex(models[modelIndex]->currentSectionIndex);
+
+    selectSection(models[modelIndex]->currentSectionIndex);
 }
 
-void Widget::selectSection(int index)
+void Widget::addInitialSections()
 {
-    setTimeStartMinMax(index);
-    setTimeEndMinMax(index);
-
-    timeStartLineEdit->setText(QString("%1").arg(sections[index].timeStart));
-    timeEndLineEdit->setText(QString("%1").arg(sections[index].timeEnd));
-
-    for (unsigned long i = 0; i < parameterLineEdit.size(); i++)
+    for (unsigned long modelIndex = 0; modelIndex < models.size(); modelIndex++)
     {
-        parameterLineEdit[i]->setText(QString("%1").arg(sections[index].parameters[i]));
+        models[modelIndex]->addSection();
+        models[modelIndex]->currentSectionIndex = 0;
     }
 
-    int timeStartSliderPosition = sections[index].getIndexTimeStart(timeStartSlider->maximum());
-    timeStartSlider->setSliderPosition(timeStartSliderPosition);
+    sectionComboBox->addItem("Section 1");
+    sectionComboBox->setCurrentIndex(0);
 
-    int timeEndSliderPosition = sections[index].getIndexTimeEnd(timeEndSlider->maximum());
-    timeEndSlider->setSliderPosition(timeEndSliderPosition);
+    selectSection(0);
 
-    for (unsigned long i = 0; i < parameterSlider.size(); i++)
+    for (unsigned long modelIndex = 0; modelIndex < models.size(); modelIndex++)
     {
-         int parameterSliderPosition = sections[index].getIndexParameter(i, parameterSlider[i]->maximum());
-         parameterSlider[i]->setSliderPosition(parameterSliderPosition);
+        integrate(modelIndex, false);
     }
+}
 
-    if (index == 0)
+void Widget::selectSection(int sectionIndex)
+{
+    int modelIndex = modelComboBox->currentIndex();
+
+    models[modelIndex]->setTimeStartMinMax(sectionIndex);
+    models[modelIndex]->setTimeEndMinMax(sectionIndex);
+
+    if (sectionIndex == 0)
     {
         removeSectionPushButton->setEnabled(false);
 
-        for (unsigned long i = 0; i < initialConditionsLineEdit.size(); i++)
+        for (int i = 0; i < models[modelIndex]->dimension; i++)
         {
             initialConditionsLineEdit[i]->setEnabled(true);
         }
@@ -731,285 +398,184 @@ void Widget::selectSection(int index)
     {
         removeSectionPushButton->setEnabled(true);
 
-        for (unsigned long i = 0; i < initialConditionsLineEdit.size(); i++)
+        for (int i = 0; i < models[modelIndex]->dimension; i++)
         {
             initialConditionsLineEdit[i]->setEnabled(false);
         }
     }
 
+    models[modelIndex]->currentSectionIndex = sectionIndex;
+
+    updateSectionControls();
     updateInitialConditionsControls();
 }
 
 void Widget::addSection()
 {
-    if (sections.empty())
-    {
-        if (modelComboBox->currentIndex() == 0) // SIR model
-        {
-            state_type x0(3);
-            x0[1] = 1.0e-7;
-            x0[2] = 0.0;
-            x0[0] = 1.0 - x0[1];
+    int modelIndex = modelComboBox->currentIndex();
 
-            std::vector<double> parameters(1);
-            parameters[0] = 2.5;
+    models[modelIndex]->addSection();
 
-            std::vector<double> parametersMin(1);
-            parametersMin[0] = 0.0;
+    int sectionIndex = models[modelIndex]->currentSectionIndex;
 
-            std::vector<double> parametersMax(1);
-            parametersMax[0] = 20.0;
+    sectionComboBox->addItem(QString("Section %1").arg(sectionIndex + 1));
+    sectionComboBox->setCurrentIndex(sectionIndex);
 
-            double t0 = 0.0;
-            double t1 = 50.0;
-
-            Section section(3, x0, parameters, parametersMin, parametersMax, t0, t1);
-            sections.push_back(section);
-        }
-        else if (modelComboBox->currentIndex() == 1) // SIRS model
-        {
-            state_type x0(3);
-            x0[1] = 1.0e-7;
-            x0[2] = 0.0;
-            x0[0] = 1.0 - x0[1];
-
-            std::vector<double> parameters(2);
-            parameters[0] = 2.5;
-            parameters[1] = 0.1;
-
-            std::vector<double> parametersMin(2);
-            parametersMin[0] = 0.0;
-            parametersMin[1] = 0.0;
-
-            std::vector<double> parametersMax(2);
-            parametersMax[0] = 20.0;
-            parametersMax[1] = 2.0;
-
-            double t0 = 0.0;
-            double t1 = 50.0;
-
-            Section section(3, x0, parameters, parametersMin, parametersMax, t0, t1);
-            sections.push_back(section);
-        }
-        else if (modelComboBox->currentIndex() == 2) // SIRA model
-        {
-            state_type x0(4);
-            x0[1] = 1.0e-7;
-            x0[2] = 0.0;
-            x0[3] = 0.0;
-            x0[0] = 1.0 - x0[1] - x0[2];
-
-            std::vector<double> parameters(2);
-            parameters[0] = 2.5;
-            parameters[1] = 0.1;
-
-            std::vector<double> parametersMin(2);
-            parametersMin[0] = 0.0;
-            parametersMin[1] = 0.0;
-
-            std::vector<double> parametersMax(2);
-            parametersMax[0] = 20.0;
-            parametersMax[1] = 5.0;
-
-            double t0 = 0.0;
-            double t1 = 50.0;
-
-            Section section(4, x0, parameters, parametersMin, parametersMax, t0, t1);
-            sections.push_back(section);
-        }
-        else if (modelComboBox->currentIndex() == 3) // SIR + Vital dynamics model
-        {
-            state_type x0(3);
-            x0[1] = 1.0e-7;
-            x0[2] = 0.0;
-            x0[0] = 1.0 - x0[1];
-
-            std::vector<double> parameters(2);
-            parameters[0] = 2.5;
-            parameters[1] = 0.1;
-
-            std::vector<double> parametersMin(2);
-            parametersMin[0] = 0.0;
-            parametersMin[1] = 0.0;
-
-            std::vector<double> parametersMax(2);
-            parametersMax[0] = 20.0;
-            parametersMax[1] = 5.0;
-
-            double t0 = 0.0;
-            double t1 = 50.0;
-
-            Section section(3, x0, parameters, parametersMin, parametersMax, t0, t1);
-            sections.push_back(section);
-        }
-        else if (modelComboBox->currentIndex() == 4) // SIRS + Vital dynamics model
-        {
-            state_type x0(3);
-            x0[1] = 1.0e-7;
-            x0[2] = 0.0;
-            x0[0] = 1.0 - x0[1];
-
-            std::vector<double> parameters(3);
-            parameters[0] = 2.5;
-            parameters[1] = 0.1;
-            parameters[2] = 0.1;
-
-            std::vector<double> parametersMin(3);
-            parametersMin[0] = 0.0;
-            parametersMin[1] = 0.0;
-            parametersMin[2] = 0.0;
-
-            std::vector<double> parametersMax(3);
-            parametersMax[0] = 20.0;
-            parametersMax[1] = 2.0;
-            parametersMax[2] = 5.0;
-
-            double t0 = 0.0;
-            double t1 = 50.0;
-
-            Section section(3, x0, parameters, parametersMin, parametersMax, t0, t1);
-            sections.push_back(section);
-        }
-    }
-    else
-    {
-        sections.push_back(sections.back());
-    }
-
-    int index = sections.size() - 1;
-
-    sectionComboBox->addItem(QString("Section %1").arg(index + 1));
-    sectionComboBox->setCurrentIndex(index);
-
-    timeStartLineEdit->setText(QString("%1").arg(sections.back().timeStart));
-    timeEndLineEdit->setText(QString("%1").arg(sections.back().timeEnd));
-
-    for (unsigned long i = 0; i < sections.back().parameters.size(); i++)
-    {
-        parameterLineEdit[i]->setText(QString("%1").arg(sections.back().parameters[i]));
-
-        int sliderPosition = sections.back().getIndexParameter(i, parameterSlider[i]->maximum());
-        parameterSlider[i]->setSliderPosition(sliderPosition);
-    }
-
-    setGraphsOnAddSection(index);
-
-    if (index == 0)
-    {
-        integrate(false);
-    }
+    selectSection(sectionIndex);
 }
 
 void Widget::removeSection()
 {
-    int index = sectionComboBox->currentIndex();
-    int jmax = sections.size() - 1;
+    int modelIndex = modelComboBox->currentIndex();
+    int sectionIndex = sectionComboBox->currentIndex();
 
-    sections.erase(sections.begin() + index, sections.begin() + sections.size());
+    int jmax = models[modelIndex]->sections.size() - 1;
 
-    for (int j = jmax; j >= index; j--)
+    for (int j = jmax; j >= sectionIndex; j--)
     {
         sectionComboBox->removeItem(j);
     }
 
-    setGraphsOnRemoveSection(index);
+    models[modelIndex]->removeSection(sectionIndex);
 
-    if (index == 0)
+    sectionIndex = models[modelIndex]->currentSectionIndex;
+
+    selectSection(sectionIndex);
+
+    if (sectionIndex == 0)
     {
-        integrate(false);
+        integrate(modelIndex, false);
     }
     else
     {
-        integrate(true);
+        integrate(modelIndex, true);
+    }
+}
+
+void Widget::updateSectionControls()
+{
+    int modelIndex = modelComboBox->currentIndex();
+    int sectionIndex = models[modelIndex]->currentSectionIndex;
+
+    timeStartLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeStart));
+    timeEndLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeEnd));
+
+    for (int i = 0; i < models[modelIndex]->numParameters; i++)
+    {
+        parameterLineEdit[i]->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].parameters[i]));
+    }
+
+    int timeStartSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
+    timeStartSlider->setSliderPosition(timeStartSliderPosition);
+
+    int timeEndSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
+    timeEndSlider->setSliderPosition(timeEndSliderPosition);
+
+    for (int i = 0; i < models[modelIndex]->numParameters; i++)
+    {
+         int parameterSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexParameter(i, parameterSlider[i]->maximum());
+         parameterSlider[i]->setSliderPosition(parameterSliderPosition);
     }
 }
 
 void Widget::onTimeStartLineEditReturnPressed()
 {
+    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
-    sections[sectionIndex].timeStart = timeStartLineEdit->text().toDouble();
 
-    int sliderPosition = sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
+    models[modelIndex]->sections[sectionIndex].timeStart = timeStartLineEdit->text().toDouble();
+
+    int sliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
     timeStartSlider->setSliderPosition(sliderPosition);
 
-    integrate(true);
+    integrate(modelIndex, true);
 }
 
 void Widget::onTimeEndLineEditReturnPressed()
 {
+    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
-    sections[sectionIndex].timeEnd = timeEndLineEdit->text().toDouble();
 
-    int sliderPosition = sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
+    models[modelIndex]->sections[sectionIndex].timeEnd = timeEndLineEdit->text().toDouble();
+
+    int sliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
     timeEndSlider->setSliderPosition(sliderPosition);
 
-    integrate(false);
+    integrate(modelIndex, false);
 }
 
 void Widget::onTimeStartSliderValueChanged(int value)
 {
+    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
-    sections[sectionIndex].setTimeStart(value, timeStartSlider->maximum());
+    models[modelIndex]->sections[sectionIndex].setTimeStart(value, timeStartSlider->maximum());
 
-    setTimeEndMinMax(sectionIndex);
+    models[modelIndex]->setTimeEndMinMax(sectionIndex);
 
-    timeStartLineEdit->setText(QString("%1").arg(sections[sectionIndex].timeStart));
+    timeStartLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeStart));
 
-    integrate(true);
+    integrate(modelIndex, true);
 }
 
 void Widget::onTimeEndSliderValueChanged(int value)
 {
+    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
-    sections[sectionIndex].setTimeEnd(value, timeEndSlider->maximum());
+    models[modelIndex]->sections[sectionIndex].setTimeEnd(value, timeEndSlider->maximum());
 
-    setTimeStartMinMax(sectionIndex);
+    models[modelIndex]->setTimeStartMinMax(sectionIndex);
 
-    timeEndLineEdit->setText(QString("%1").arg(sections[sectionIndex].timeEnd));
+    timeEndLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeEnd));
 
-    integrate(false);
+    integrate(modelIndex, false);
 }
 
 void Widget::onParameterLineEditReturnPressed(int index)
 {
+    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
-    sections[sectionIndex].parameters[index] = parameterLineEdit[index]->text().toDouble();
 
-    int sliderPosition = sections[sectionIndex].getIndexParameter(index, parameterSlider[index]->maximum());
+    models[modelIndex]->sections[sectionIndex].parameters[index] = parameterLineEdit[index]->text().toDouble();
+
+    int sliderPosition = models[modelIndex]->sections[sectionIndex].getIndexParameter(index, parameterSlider[index]->maximum());
     parameterSlider[index]->setSliderPosition(sliderPosition);
 
-    integrate(false);
+    integrate(modelIndex, false);
 }
 
 void Widget::onParameterSliderValueChanged(int index, int value)
 {
+    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
-    sections[sectionIndex].setParameter(index, value, parameterSlider[index]->maximum());
+    models[modelIndex]->sections[sectionIndex].setParameter(index, value, parameterSlider[index]->maximum());
 
-    parameterLineEdit[index]->setText(QString("%1").arg(sections[sectionIndex].parameters[index]));
+    parameterLineEdit[index]->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].parameters[index]));
 
-    integrate(false);
+    integrate(modelIndex, false);
 }
 
 void Widget::onInitialConditionsLineEditReturnPressed(int index)
 {
-    sections[0].x0[index] = initialConditionsLineEdit[index]->text().toDouble();
+    int modelIndex = modelComboBox->currentIndex();
+
+    models[modelIndex]->sections[0].x0[index] = initialConditionsLineEdit[index]->text().toDouble();
 
     updateSumInitialConditionsLabel();
 
-    integrate(false);
+    integrate(modelIndex, false);
 }
 
 void Widget::updateInitialConditionsControls()
 {
-    int sectionIndex = sectionComboBox->currentIndex();
+    int modelIndex = modelComboBox->currentIndex();
+    int sectionIndex = models[modelIndex]->currentSectionIndex;
 
-    for (unsigned long i = 0; i < initialConditionsLineEdit.size(); i++)
+    for (int i = 0; i < models[modelIndex]->dimension; i++)
     {
-        initialConditionsLineEdit[i]->setText(QString("%1").arg(sections[sectionIndex].x0[i]));
+        initialConditionsLineEdit[i]->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].x0[i]));
     }
 
     updateSumInitialConditionsLabel();
@@ -1017,16 +583,17 @@ void Widget::updateInitialConditionsControls()
 
 void Widget::updateSumInitialConditionsLabel()
 {
-    int sectionIndex = sectionComboBox->currentIndex();
+    int modelIndex = modelComboBox->currentIndex();
+    int sectionIndex = models[modelIndex]->currentSectionIndex;
 
     QString text;
     double sum = 0.0;
 
-    for (unsigned long i = 0; i < initialConditionsLabel.size(); i++)
+    for (int i = 0; i < models[modelIndex]->dimension; i++)
     {
-        text.append(initialConditionsLabel[i]->text());
+        text.append(models[modelIndex]->variableShortNames[i]->text());
 
-        if (i < initialConditionsLabel.size() - 1)
+        if (i < models[modelIndex]->dimension - 1)
         {
             text.append(" + ");
         }
@@ -1035,7 +602,7 @@ void Widget::updateSumInitialConditionsLabel()
             text.append(" = ");
         }
 
-        sum += sections[sectionIndex].x0[i];
+        sum += models[modelIndex]->sections[sectionIndex].x0[i];
     }
 
     text.append(QString("%1").arg(sum));
@@ -1044,7 +611,7 @@ void Widget::updateSumInitialConditionsLabel()
     sumInitialConditionsLabel->repaint();
 }
 
-void Widget::integrate(bool interpolation)
+void Widget::integrate(int modelIndex, bool interpolation)
 {
     using namespace boost::numeric::odeint;
 
@@ -1052,47 +619,88 @@ void Widget::integrate(bool interpolation)
 
     int sectionIndex = sectionComboBox->currentIndex();
 
-    for (int i = sectionIndex; i < static_cast<int>(sections.size()); i++)
+    /*for (int i = sectionIndex; i < static_cast<int>(models[modelIndex]->sections.size()); i++)
     {
         if (interpolation && i > 0)
         {
-            sections[i].interpolateX0(sections[i - 1]);
+            models[modelIndex]->sections[i].interpolateX0(models[modelIndex]->sections[i - 1]);
         }
 
         interpolation = true;
 
-        sections[i].x = sections[i].x0;
-        sections[i].steps.clear();
-        sections[i].times.clear();
+        models[modelIndex]->sections[i].x = models[modelIndex]->sections[i].x0;
+        models[modelIndex]->sections[i].steps.clear();
+        models[modelIndex]->sections[i].times.clear();
 
-        if (modelComboBox->currentIndex() == 0) // SIR model
+        if (modelIndex == 0) // SIR model
         {
-            SIR sir(sections[i].parameters[0]);
-            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sir, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
+            SIR sir(models[modelIndex]->sections[i].parameters[0]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sir, models[modelIndex]->sections[i].x, models[modelIndex]->sections[i].timeStart, models[modelIndex]->sections[i].timeEnd, 0.01, push_back_state_and_time(models[modelIndex]->sections[i].steps, models[modelIndex]->sections[i].times));
         }
-        else if (modelComboBox->currentIndex() == 1) // SIRS model
+        else if (modelIndex == 1) // SIRS model
         {
-            SIRS sirs(sections[i].parameters[0], sections[i].parameters[1]);
-            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirs, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
+            SIRS sirs(models[modelIndex]->sections[i].parameters[0], models[modelIndex]->sections[i].parameters[1]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirs, models[modelIndex]->sections[i].x, models[modelIndex]->sections[i].timeStart, models[modelIndex]->sections[i].timeEnd, 0.01, push_back_state_and_time(models[modelIndex]->sections[i].steps, models[modelIndex]->sections[i].times));
         }
-        else if (modelComboBox->currentIndex() == 2) // SIRA model
+        else if (modelIndex == 2) // SIRA model
         {
-            SIRA sira(sections[i].parameters[0], sections[i].parameters[1]);
-            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sira, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
+            SIRA sira(models[modelIndex]->sections[i].parameters[0], models[modelIndex]->sections[i].parameters[1]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sira, models[modelIndex]->sections[i].x, models[modelIndex]->sections[i].timeStart, models[modelIndex]->sections[i].timeEnd, 0.01, push_back_state_and_time(models[modelIndex]->sections[i].steps, models[modelIndex]->sections[i].times));
         }
-        else if (modelComboBox->currentIndex() == 3) // SIR + Vital dynamics model
+        else if (modelIndex == 3) // SIR + Vital dynamics model
         {
-            SIRVitalDynamics sirVitalDynamics(sections[i].parameters[0], sections[i].parameters[1]);
-            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirVitalDynamics, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
+            SIRVitalDynamics sirVitalDynamics(models[modelIndex]->sections[i].parameters[0], models[modelIndex]->sections[i].parameters[1]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirVitalDynamics, models[modelIndex]->sections[i].x, models[modelIndex]->sections[i].timeStart, models[modelIndex]->sections[i].timeEnd, 0.01, push_back_state_and_time(models[modelIndex]->sections[i].steps, models[modelIndex]->sections[i].times));
         }
-        else if (modelComboBox->currentIndex() == 4) // SIRS + Vital dynamics model
+        else if (modelIndex == 4) // SIRS + Vital dynamics model
         {
-            SIRSVitalDynamics sirsVitalDynamics(sections[i].parameters[0], sections[i].parameters[1], sections[i].parameters[2]);
-            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirsVitalDynamics, sections[i].x, sections[i].timeStart, sections[i].timeEnd, 0.01, push_back_state_and_time(sections[i].steps, sections[i].times));
+            SIRSVitalDynamics sirsVitalDynamics(models[modelIndex]->sections[i].parameters[0], models[modelIndex]->sections[i].parameters[1], models[modelIndex]->sections[i].parameters[2]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirsVitalDynamics, models[modelIndex]->sections[i].x, models[modelIndex]->sections[i].timeStart, models[modelIndex]->sections[i].timeEnd, 0.01, push_back_state_and_time(models[modelIndex]->sections[i].steps, models[modelIndex]->sections[i].times));
+        }
+    }*/
+    for (int i = sectionIndex; i < static_cast<int>(models[modelIndex]->sections.size()); i++)
+    {
+        Section *section = &models[modelIndex]->sections[i];
+
+        if (interpolation && i > 0)
+        {
+            section->interpolateX0(models[modelIndex]->sections[i - 1]);
+        }
+
+        interpolation = true;
+
+        section->x = section->x0;
+        section->steps.clear();
+        section->times.clear();
+
+        if (modelIndex == 0) // SIR model
+        {
+            SIR sir(section->parameters[0]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sir, section->x, section->timeStart, section->timeEnd, 0.01, push_back_state_and_time(section->steps, section->times));
+        }
+        else if (modelIndex == 1) // SIRS model
+        {
+            SIRS sirs(section->parameters[0], section->parameters[1]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirs, section->x, section->timeStart, section->timeEnd, 0.01, push_back_state_and_time(section->steps, section->times));
+        }
+        else if (modelIndex == 2) // SIRA model
+        {
+            SIRA sira(section->parameters[0], section->parameters[1]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sira, section->x, section->timeStart, section->timeEnd, 0.01, push_back_state_and_time(section->steps, section->times));
+        }
+        else if (modelIndex == 3) // SIR + Vital dynamics model
+        {
+            SIRVitalDynamics sirVitalDynamics(section->parameters[0], section->parameters[1]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirVitalDynamics, section->x, section->timeStart, section->timeEnd, 0.01, push_back_state_and_time(section->steps, section->times));
+        }
+        else if (modelIndex == 4) // SIRS + Vital dynamics model
+        {
+            SIRSVitalDynamics sirsVitalDynamics(section->parameters[0], section->parameters[1], section->parameters[2]);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirsVitalDynamics, section->x, section->timeStart, section->timeEnd, 0.01, push_back_state_and_time(section->steps, section->times));
         }
     }
 
     updateInitialConditionsControls();
 
-    setPlots();
+    models[modelIndex]->setPlotsData();
 }
