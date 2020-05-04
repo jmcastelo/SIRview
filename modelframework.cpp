@@ -47,6 +47,7 @@ ModelFramework::ModelFramework(
     colors[13] = Qt::darkGray;
 
     currentSectionIndex = 0;
+    currentSnapshotIndex = -1;
 
     name = modelName;
 
@@ -89,6 +90,96 @@ ModelFramework::ModelFramework(
     numParameters = static_cast<int>(parameterNames.size());
 
     constructPlots();
+}
+
+ModelFramework::ModelFramework(const ModelFramework &mf, QWidget *parent): QWidget(parent)
+{
+    name = mf.name;
+
+    dimension = mf.dimension;
+    numParameters = mf.numParameters;
+
+    timeMin = mf.timeMin;
+    timeMax = mf.timeMax;
+
+    for (unsigned long i = 0; i < mf.variableShortNames.size(); i++)
+    {
+        QLabel *label = new QLabel;
+        label->setText(mf.variableShortNames[i]->text());
+        variableShortNames.push_back(label);
+    }
+
+    for (unsigned long i = 0; i < mf.variableLongNames.size(); i++)
+    {
+        QLabel *label = new QLabel;
+        label->setText(mf.variableLongNames[i]->text());
+        variableLongNames.push_back(label);
+    }
+
+    for (unsigned long i = 0; i < mf.parameterNames.size(); i++)
+    {
+        QLabel *label = new QLabel;
+        label->setText(mf.parameterNames[i]->text());
+        parameterNames.push_back(label);
+    }
+
+    parameterMin = mf.parameterMin;
+    parameterMax = mf.parameterMax;
+    parameterInit = mf.parameterInit;
+
+    initialConditions = mf.initialConditions;
+
+    sections = mf.sections;
+    currentSectionIndex = mf.currentSectionIndex;
+
+    for (int i = 0; i < 14; i++)
+    {
+        colors[i] = mf.colors[i];
+    }
+
+    constructPlots();
+    constructGraphs();
+}
+
+ModelFramework::~ModelFramework()
+{
+    for (unsigned long i = 0; i < variableShortNames.size(); i++)
+    {
+        delete variableShortNames[i];
+        variableShortNames[i] = nullptr;
+    }
+
+    variableShortNames.clear();
+
+    for (unsigned long i = 0; i < variableLongNames.size(); i++)
+    {
+        delete variableLongNames[i];
+        variableLongNames[i] = nullptr;
+    }
+
+    variableLongNames.clear();
+
+    for (unsigned long i = 0; i < parameterNames.size(); i++)
+    {
+        delete parameterNames[i];
+        parameterNames[i] = nullptr;
+    }
+
+    parameterNames.clear();
+
+    for (unsigned long i = 0; i < plots.size(); i++)
+    {
+        delete plots[i];
+        plots[i] = nullptr;
+    }
+
+    plots.clear();
+
+    delete allVariablesPlot;
+    allVariablesPlot = nullptr;
+
+    delete plotsGridWidget;
+    plotsGridWidget = nullptr;
 }
 
 void ModelFramework::constructPlots()
@@ -140,6 +231,71 @@ void ModelFramework::constructPlots()
     allVariablesPlot->axisRect()->setupFullAxesBox(true);
     allVariablesPlot->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
     allVariablesPlot->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
+}
+
+void ModelFramework::constructGraphs()
+{
+    int lastSectionIndex = sections.size() - 1;
+
+    // Plots
+
+    for (unsigned long i = 0; i < plots.size(); i++)
+    {
+        // Add graphs corresponding to all sections except for the last one
+
+        for (int j = 0; j < lastSectionIndex; j++)
+        {
+            plots[i]->addGraph();
+            plots[i]->addGraph();
+
+            int numGraphs = plots[i]->graphCount();
+
+            QPen pen = QPen(colors[j % 14]);
+            pen.setStyle(Qt::SolidLine);
+            pen.setWidth(3);
+
+            plots[i]->graph(numGraphs - 2)->setPen(pen);
+
+            pen.setStyle(Qt::DashLine);
+            pen.setWidth(1);
+
+            plots[i]->graph(numGraphs - 1)->setPen(pen);
+        }
+
+        // Last graph (last section)
+
+        QPen pen = QPen(colors[lastSectionIndex % 14]);
+        pen.setStyle(Qt::SolidLine);
+        pen.setWidth(3);
+
+        plots[i]->addGraph();
+
+        int numGraphs = plots[i]->graphCount();
+
+        plots[i]->graph(numGraphs - 1)->setPen(pen);
+    }
+
+    // All variables plot
+
+    // Add as many graphs to plot as dimensions of the model
+
+    for (unsigned long j = 0; j < sections.size(); j++)
+    {
+        QPen pen = QPen(colors[j % 14]);
+        pen.setStyle(Qt::SolidLine);
+        pen.setWidth(3);
+
+        for (int i = 0; i < dimension; i++)
+        {
+            allVariablesPlot->addGraph();
+
+            int numGraphs = allVariablesPlot->graphCount();
+
+            allVariablesPlot->graph(numGraphs - 1)->setPen(pen);
+        }
+    }
+
+    setPlotsData();
 }
 
 void ModelFramework::setPlotsData()

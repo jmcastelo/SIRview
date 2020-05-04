@@ -27,6 +27,28 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     models.push_back(new ModelFramework("SIR + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
     models.push_back(new ModelFramework("SIRS + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1", "P3"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
 
+    // Init snapshots vector
+
+   /*std::vector<ModelFramework> snapshot;
+
+   snapshot.reserve(100);
+
+   snapshots.reserve(5);
+
+    for (unsigned long i = 0; i < models.size(); i++)
+    {
+        snapshots.push_back(snapshot);
+    }*/
+
+    std::list<ModelFramework> snapshot;
+
+    snapshots.reserve(5);
+
+    for (unsigned long i = 0; i < models.size(); i++)
+    {
+        snapshots.push_back(snapshot);
+    }
+
     // Model selection controls
 
     QLabel *modelLabel = new QLabel("Model");
@@ -39,6 +61,20 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     }
 
     modelComboBox->setCurrentIndex(0);
+
+    // Model management controls
+
+    QLabel *snapshotLabel = new QLabel("Snapshots");
+
+    takeSnapshotPushButton = new QPushButton("Take");
+    removeSnapshotPushButton = new QPushButton("Remove");
+    removeSnapshotPushButton->setEnabled(false);
+
+    QHBoxLayout *takeRemovePushButtonsHBoxLayout = new QHBoxLayout;
+    takeRemovePushButtonsHBoxLayout->addWidget(takeSnapshotPushButton);
+    takeRemovePushButtonsHBoxLayout->addWidget(removeSnapshotPushButton);
+
+    snapshotComboBox = new QComboBox;
 
     // Section management controls
 
@@ -86,19 +122,18 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     initialConditionsVBoxLayout = new QVBoxLayout;
 
-    //constructInitialConditionsControls(0);
-
     QLabel *parameterLabel = new QLabel("Parameters");
 
     parameterVBoxLayout = new QVBoxLayout;
-
-    //constructParameterControls(0);
 
     // Main controls vertical layout & widget
 
     mainControlsVBoxLayout = new QVBoxLayout;
     mainControlsVBoxLayout->addWidget(modelLabel);
     mainControlsVBoxLayout->addWidget(modelComboBox);
+    mainControlsVBoxLayout->addWidget(snapshotLabel);
+    mainControlsVBoxLayout->addLayout(takeRemovePushButtonsHBoxLayout);
+    mainControlsVBoxLayout->addWidget(snapshotComboBox);
     mainControlsVBoxLayout->addWidget(sectionLabel);
     mainControlsVBoxLayout->addLayout(addRemovePushButtonsHBoxLayout);
     mainControlsVBoxLayout->addWidget(sectionComboBox);
@@ -112,16 +147,16 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     mainControlsVBoxLayout->addWidget(parameterLabel);
     mainControlsVBoxLayout->addLayout(parameterVBoxLayout);
 
-    // Graphs
+    // Plots
 
-    graphsTabWidget = new QTabWidget;
-    graphsTabWidget->setTabPosition(QTabWidget::North);
+    plotsTabWidget = new QTabWidget;
+    plotsTabWidget->setTabPosition(QTabWidget::North);
 
     // Main grid layout
 
     QGridLayout *mainGridLayout = new QGridLayout;
     mainGridLayout->addLayout(mainControlsVBoxLayout, 0, 0, Qt::AlignTop);
-    mainGridLayout->addWidget(graphsTabWidget, 0, 1);
+    mainGridLayout->addWidget(plotsTabWidget, 0, 1);
     mainGridLayout->setColumnStretch(0, 0);
     mainGridLayout->setColumnStretch(1, 1);
 
@@ -132,7 +167,11 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ setPlotTabs(modelIndex); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) updateSectionControls(); updateInitialConditionsControls(); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ updateSectionComboBox(modelIndex); });
-    connect(sectionComboBox, QOverload<int>::of(&QComboBox::activated), [=](int sectionIndex){ if (sectionIndex >= 0) selectSection(sectionIndex); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ updateSnapshotWidgets(modelIndex); });
+    connect(takeSnapshotPushButton, &QPushButton::clicked, this, &Widget::takeSnapshot);
+    connect(removeSnapshotPushButton, &QPushButton::clicked, this, &Widget::removeSnapshot);
+    connect(snapshotComboBox, QOverload<int>::of(&QComboBox::activated), [=](int snapshotIndex){ selectSnapshot(snapshotIndex);});
+    connect(sectionComboBox, QOverload<int>::of(&QComboBox::activated), [=](int sectionIndex){ selectSection(sectionIndex); });
     connect(addSectionPushButton, &QPushButton::clicked, this, &Widget::addSection);
     connect(removeSectionPushButton, &QPushButton::clicked, this, &Widget::removeSection);
     connect(timeStartLineEdit, &QLineEdit::returnPressed, this, &Widget::onTimeStartLineEditReturnPressed);
@@ -161,6 +200,13 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
 Widget::~Widget()
 {
+    for (unsigned long i = 0; i < models.size(); i++)
+    {
+        delete models[i];
+        models[i]= nullptr;
+    }
+
+    models.clear();
 }
 
 void Widget::deleteParameterControls()
@@ -314,14 +360,14 @@ void Widget::constructInitialConditionsControls(int modelIndex)
 
 void Widget::setPlotTabs(int modelIndex)
 {
-    graphsTabWidget->clear();
+    plotsTabWidget->clear();
 
-    graphsTabWidget->addTab(models[modelIndex]->plotsGridWidget, "All");
-    graphsTabWidget->addTab(models[modelIndex]->allVariablesPlot, "Joint");
+    plotsTabWidget->addTab(models[modelIndex]->plotsGridWidget, "All");
+    plotsTabWidget->addTab(models[modelIndex]->allVariablesPlot, "Joint");
 
     for (int i = 0; i < models[modelIndex]->dimension; i++)
     {
-        graphsTabWidget->addTab(models[modelIndex]->plots[i], models[modelIndex]->variableLongNames[i]->text());
+        plotsTabWidget->addTab(models[modelIndex]->plots[i], models[modelIndex]->variableLongNames[i]->text());
     }
 }
 
@@ -611,6 +657,131 @@ void Widget::updateSumInitialConditionsLabel()
     sumInitialConditionsLabel->repaint();
 }
 
+void Widget::takeSnapshot()
+{
+    int modelIndex = modelComboBox->currentIndex();
+
+    snapshots[modelIndex].push_back(*models[modelIndex]);
+
+    int snapshotIndex = snapshots[modelIndex].size() - 1;
+
+    snapshotComboBox->addItem(QString("Snapshot %1").arg(snapshotIndex + 1));
+    snapshotComboBox->setCurrentIndex(snapshotIndex);
+
+    updateSnapshotTab(snapshotIndex);
+
+    removeSnapshotPushButton->setEnabled(true);
+
+    models[modelIndex]->currentSnapshotIndex = snapshotIndex;
+}
+
+void Widget::selectSnapshot(int snapshotIndex)
+{
+    updateSnapshotTab(snapshotIndex);
+
+    int modelIndex = modelComboBox->currentIndex();
+    int snapshotTabIndex = 2 + models[modelIndex]->dimension;
+
+    plotsTabWidget->setCurrentIndex(snapshotTabIndex);
+
+    models[modelIndex]->currentSnapshotIndex = snapshotIndex;
+}
+
+void Widget::updateSnapshotTab(int snapshotIndex)
+{
+    int modelIndex = modelComboBox->currentIndex();
+    int snapshotTabIndex = 2 + models[modelIndex]->dimension;
+    int plotsTabWidgetIndex = plotsTabWidget->currentIndex();
+
+    if (snapshots[modelIndex].size() > 1)
+    {
+        plotsTabWidget->removeTab(snapshotTabIndex);
+    }
+
+    auto it = std::next(snapshots[modelIndex].begin(), snapshotIndex);
+    plotsTabWidget->addTab((*it).plotsGridWidget, "Snapshot");
+
+    plotsTabWidget->setCurrentIndex(plotsTabWidgetIndex);
+}
+
+void Widget::removeSnapshot()
+{
+    int modelIndex = modelComboBox->currentIndex();
+    int snapshotTabIndex = 2 + models[modelIndex]->dimension;
+    int plotsTabWidgetIndex = plotsTabWidget->currentIndex();
+    int snapshotIndex = snapshotComboBox->currentIndex();
+
+    plotsTabWidget->removeTab(snapshotTabIndex);
+
+    std::list<ModelFramework>::iterator it = snapshots[modelIndex].begin();
+    std::advance(it, snapshotIndex);
+    snapshots[modelIndex].erase(it);
+
+    snapshotComboBox->removeItem(snapshotIndex);
+
+    for (int i = 0; i < snapshotComboBox->count(); i++)
+    {
+        snapshotComboBox->setItemText(i, QString("Snapshot %1").arg(i + 1));
+    }
+
+    if (snapshots[modelIndex].size() > 0)
+    {
+        auto it = std::next(snapshots[modelIndex].begin(), snapshotComboBox->currentIndex());
+        plotsTabWidget->addTab((*it).plotsGridWidget, "Snapshot");
+
+        plotsTabWidget->setCurrentIndex(plotsTabWidgetIndex);
+    }
+    else
+    {
+        removeSnapshotPushButton->setEnabled(false);
+
+        if (plotsTabWidgetIndex == snapshotTabIndex)
+        {
+            plotsTabWidget->setCurrentIndex(0);
+        }
+        else
+        {
+            plotsTabWidget->setCurrentIndex(plotsTabWidgetIndex);
+        }
+    }
+
+    models[modelIndex]->currentSnapshotIndex = snapshotIndex - 1;
+}
+
+void Widget::updateSnapshotWidgets(int modelIndex)
+{
+    snapshotComboBox->clear();
+
+    for (size_t i = 0; i < snapshots[modelIndex].size(); i++)
+    {
+        snapshotComboBox->addItem(QString("Snapshot %1").arg(i + 1));
+    }
+
+    if (snapshots[modelIndex].size() > 0)
+    {
+        int snapshotIndex = models[modelIndex]->currentSnapshotIndex;
+
+        snapshotComboBox->setCurrentIndex(snapshotIndex);
+
+        updateSnapshotTab(snapshotIndex);
+
+        removeSnapshotPushButton->setEnabled(true);
+    }
+    else
+    {
+        int snapshotTabIndex = 2 + models[modelIndex]->dimension;
+
+        QWidget *widget = plotsTabWidget->widget(snapshotTabIndex);
+
+        if (widget != nullptr)
+        {
+            plotsTabWidget->removeTab(snapshotTabIndex);
+        }
+
+        removeSnapshotPushButton->setEnabled(false);
+    }
+}
+
 void Widget::integrate(int modelIndex, bool interpolation)
 {
     using namespace boost::numeric::odeint;
@@ -619,46 +790,7 @@ void Widget::integrate(int modelIndex, bool interpolation)
 
     int sectionIndex = sectionComboBox->currentIndex();
 
-    /*for (int i = sectionIndex; i < static_cast<int>(models[modelIndex]->sections.size()); i++)
-    {
-        if (interpolation && i > 0)
-        {
-            models[modelIndex]->sections[i].interpolateX0(models[modelIndex]->sections[i - 1]);
-        }
-
-        interpolation = true;
-
-        models[modelIndex]->sections[i].x = models[modelIndex]->sections[i].x0;
-        models[modelIndex]->sections[i].steps.clear();
-        models[modelIndex]->sections[i].times.clear();
-
-        if (modelIndex == 0) // SIR model
-        {
-            SIR sir(models[modelIndex]->sections[i].parameters[0]);
-            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sir, models[modelIndex]->sections[i].x, models[modelIndex]->sections[i].timeStart, models[modelIndex]->sections[i].timeEnd, 0.01, push_back_state_and_time(models[modelIndex]->sections[i].steps, models[modelIndex]->sections[i].times));
-        }
-        else if (modelIndex == 1) // SIRS model
-        {
-            SIRS sirs(models[modelIndex]->sections[i].parameters[0], models[modelIndex]->sections[i].parameters[1]);
-            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirs, models[modelIndex]->sections[i].x, models[modelIndex]->sections[i].timeStart, models[modelIndex]->sections[i].timeEnd, 0.01, push_back_state_and_time(models[modelIndex]->sections[i].steps, models[modelIndex]->sections[i].times));
-        }
-        else if (modelIndex == 2) // SIRA model
-        {
-            SIRA sira(models[modelIndex]->sections[i].parameters[0], models[modelIndex]->sections[i].parameters[1]);
-            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sira, models[modelIndex]->sections[i].x, models[modelIndex]->sections[i].timeStart, models[modelIndex]->sections[i].timeEnd, 0.01, push_back_state_and_time(models[modelIndex]->sections[i].steps, models[modelIndex]->sections[i].times));
-        }
-        else if (modelIndex == 3) // SIR + Vital dynamics model
-        {
-            SIRVitalDynamics sirVitalDynamics(models[modelIndex]->sections[i].parameters[0], models[modelIndex]->sections[i].parameters[1]);
-            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirVitalDynamics, models[modelIndex]->sections[i].x, models[modelIndex]->sections[i].timeStart, models[modelIndex]->sections[i].timeEnd, 0.01, push_back_state_and_time(models[modelIndex]->sections[i].steps, models[modelIndex]->sections[i].times));
-        }
-        else if (modelIndex == 4) // SIRS + Vital dynamics model
-        {
-            SIRSVitalDynamics sirsVitalDynamics(models[modelIndex]->sections[i].parameters[0], models[modelIndex]->sections[i].parameters[1], models[modelIndex]->sections[i].parameters[2]);
-            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirsVitalDynamics, models[modelIndex]->sections[i].x, models[modelIndex]->sections[i].timeStart, models[modelIndex]->sections[i].timeEnd, 0.01, push_back_state_and_time(models[modelIndex]->sections[i].steps, models[modelIndex]->sections[i].times));
-        }
-    }*/
-    for (int i = sectionIndex; i < static_cast<int>(models[modelIndex]->sections.size()); i++)
+    for (unsigned long i = sectionIndex; i < models[modelIndex]->sections.size(); i++)
     {
         Section *section = &models[modelIndex]->sections[i];
 

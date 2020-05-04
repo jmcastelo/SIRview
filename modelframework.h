@@ -58,6 +58,8 @@ public:
     std::vector<Section> sections;
     int currentSectionIndex;
 
+    int currentSnapshotIndex;
+
     ModelFramework(
         QString modelName,
         std::list<QString> variableShortNamesList,
@@ -68,6 +70,10 @@ public:
         std::list<double> parameterInitList,
         std::list<double> initialConditionsList,
         QWidget *parent = nullptr);
+
+    ModelFramework(const ModelFramework &mf, QWidget *parent = nullptr);
+
+    ~ModelFramework();
 
     void setPlotsData();
     void setGraphsOnAddSection(int index);
@@ -84,6 +90,7 @@ private:
     Qt::GlobalColor colors[14];
 
     void constructPlots();
+    void constructGraphs();
 };
 
 #endif // MODELFRAMEWORK_H

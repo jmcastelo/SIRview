@@ -22,6 +22,8 @@
 #include "modelframework.h"
 #include "customvalidator.h"
 #include <vector>
+#include <list>
+#include <iterator>
 #include <boost/numeric/odeint.hpp>
 #include <QWidget>
 #include <QLabel>
@@ -45,8 +47,13 @@ public:
 
 private:
     std::vector<ModelFramework*> models;
+    std::vector<std::list<ModelFramework>> snapshots;
 
     QComboBox *modelComboBox;
+
+    QPushButton *takeSnapshotPushButton;
+    QPushButton *removeSnapshotPushButton;
+    QComboBox *snapshotComboBox;
 
     QVBoxLayout *mainControlsVBoxLayout;
 
@@ -69,7 +76,7 @@ private:
     std::vector<QLineEdit*> parameterLineEdit;
     std::vector<QSlider*> parameterSlider;
 
-    QTabWidget *graphsTabWidget;
+    QTabWidget *plotsTabWidget;
 
     void onTimeStartLineEditReturnPressed();
     void onTimeEndLineEditReturnPressed();
@@ -103,6 +110,12 @@ private:
     void selectSection(int index);
     void addSection();
     void removeSection();
+
+    void takeSnapshot();
+    void selectSnapshot(int snapshotIndex);
+    void updateSnapshotTab(int snapshotIndex);
+    void removeSnapshot();
+    void updateSnapshotWidgets(int modelIndex);
 
     void integrate(int modelIndex, bool interpolation);
 };
