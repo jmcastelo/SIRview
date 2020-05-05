@@ -38,10 +38,14 @@ public:
     double timeEnd, timeEndMin, timeEndMax;
     std::vector<double> parameters, parametersMin, parametersMax;
 
-    Section(std::vector<double> xStart, std::vector<double> p, std::vector<double> pMin, std::vector<double> pMax, double t0, double t1):
+    Section(std::vector<double> xStart, std::vector<double> p, std::vector<double> pMin, std::vector<double> pMax, double t0, double t0Min, double t0Max, double t1, double t1Min, double t1Max):
         x0(xStart),
         timeStart(t0),
+        timeStartMin(t0Min),
+        timeStartMax(t0Max),
         timeEnd(t1),
+        timeEndMin(t1Min),
+        timeEndMax(t1Max),
         parameters(p),
         parametersMin(pMin),
         parametersMax(pMax){}

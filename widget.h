@@ -36,6 +36,7 @@
 #include <QLineEdit>
 #include <QSlider>
 #include <QGridLayout>
+#include <QCheckBox>
 
 class Widget: public QWidget
 {
@@ -61,8 +62,11 @@ private:
     QPushButton *removeSectionPushButton;
     QComboBox *sectionComboBox;
 
-    CustomValidator *timeStartDoubleValidator;
-    CustomValidator *timeEndDoubleValidator;
+    QCheckBox *shiftTimeRangesCheckbox;
+    //CustomValidator *timeStartDoubleValidator;
+    //CustomValidator *timeEndDoubleValidator;
+    QDoubleValidator *timeStartDoubleValidator;
+    QDoubleValidator *timeEndDoubleValidator;
     QLineEdit *timeStartLineEdit;
     QLineEdit *timeEndLineEdit;
     QSlider *timeStartSlider;
@@ -102,9 +106,11 @@ private:
     void updateSectionComboBox(int modelIndex);
 
     void updateSectionControls();
-
-    void setTimeStartMinMax(int sectionIndex);
-    void setTimeEndMinMax(int sectionIndex);
+    void updateTimeStartControls();
+    void updateTimeEndControls();
+    void updateValidators();
+    void updateParameterControls();
+    void updateTimeRangeMinMax(bool shift);
 
     void addInitialSections();
     void selectSection(int index);

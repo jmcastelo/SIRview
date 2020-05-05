@@ -38,9 +38,6 @@ public:
     int dimension;
     int numParameters;
 
-    double timeMin;
-    double timeMax;
-
     std::vector<QLabel*> variableShortNames;
     std::vector<QLabel*> variableLongNames;
     std::vector<QLabel*> parameterNames;
@@ -79,8 +76,12 @@ public:
     void setGraphsOnAddSection(int index);
     void setGraphsOnRemoveSection(int index);
 
-    void setTimeStartMinMax(int sectionIndex);
-    void setTimeEndMinMax(int sectionIndex);
+    void onTimeStartChanged(int sectionIndex);
+    void onTimeEndChanged(int sectionIndex);
+
+    void shiftTimeRanges(int sectionIndex, double delta);
+
+    void updateTimeRangeMinMax();
 
     void deleteSections();
     void addSection();

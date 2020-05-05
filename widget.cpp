@@ -29,17 +29,6 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     // Init snapshots vector
 
-   /*std::vector<ModelFramework> snapshot;
-
-   snapshot.reserve(100);
-
-   snapshots.reserve(5);
-
-    for (unsigned long i = 0; i < models.size(); i++)
-    {
-        snapshots.push_back(snapshot);
-    }*/
-
     std::list<ModelFramework> snapshot;
 
     snapshots.reserve(5);
@@ -92,9 +81,13 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     QLabel *timeLabel = new QLabel("Time range");
 
+    shiftTimeRangesCheckbox = new QCheckBox("Shift time ranges");
+    shiftTimeRangesCheckbox->setChecked(false);
+
     timeStartLineEdit = new QLineEdit;
 
-    timeStartDoubleValidator = new CustomValidator(models[0]->timeMin, models[0]->timeMax, 10, timeStartLineEdit);
+    //timeStartDoubleValidator = new CustomValidator(models[0]->timeMin, models[0]->timeMax, 10, timeStartLineEdit);
+    timeStartDoubleValidator = new QDoubleValidator(0.0, 1.0, 10, timeStartLineEdit);
     timeStartDoubleValidator->setNotation(QDoubleValidator::StandardNotation);
     timeStartDoubleValidator->setLocale(QLocale::English);
 
@@ -102,12 +95,12 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     timeStartSlider = new QSlider(Qt::Horizontal);
     timeStartSlider->setFixedWidth(250);
-    timeStartSlider->setRange(0, 10000);
-    timeStartSlider->setValue(0);
+    timeStartSlider->setRange(0, 1000);
 
     timeEndLineEdit = new QLineEdit;
 
-    timeEndDoubleValidator = new CustomValidator(models[0]->timeMin, models[0]->timeMax, 10, timeEndLineEdit);
+    //timeEndDoubleValidator = new CustomValidator(models[0]->timeMin, models[0]->timeMax, 10, timeEndLineEdit);
+    timeEndDoubleValidator = new QDoubleValidator(0.0, 1.0, 10, timeEndLineEdit);
     timeEndDoubleValidator->setNotation(QDoubleValidator::StandardNotation);
     timeEndDoubleValidator->setLocale(QLocale::English);
 
@@ -115,8 +108,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     timeEndSlider = new QSlider(Qt::Horizontal);
     timeEndSlider->setFixedWidth(250);
-    timeEndSlider->setRange(0, 10000);
-    timeEndSlider->setValue(10000);
+    timeEndSlider->setRange(0, 1000);
 
     QLabel *initialConditionsLabel = new QLabel("Initial conditions");
 
@@ -138,6 +130,7 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     mainControlsVBoxLayout->addLayout(addRemovePushButtonsHBoxLayout);
     mainControlsVBoxLayout->addWidget(sectionComboBox);
     mainControlsVBoxLayout->addWidget(timeLabel);
+    mainControlsVBoxLayout->addWidget(shiftTimeRangesCheckbox);
     mainControlsVBoxLayout->addWidget(timeStartLineEdit);
     mainControlsVBoxLayout->addWidget(timeStartSlider);
     mainControlsVBoxLayout->addWidget(timeEndLineEdit);
@@ -165,8 +158,8 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ constructParameterControls(modelIndex); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ constructInitialConditionsControls(modelIndex); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ setPlotTabs(modelIndex); });
-    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) updateSectionControls(); updateInitialConditionsControls(); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ updateSectionComboBox(modelIndex); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) updateSectionControls(); updateInitialConditionsControls(); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ updateSnapshotWidgets(modelIndex); });
     connect(takeSnapshotPushButton, &QPushButton::clicked, this, &Widget::takeSnapshot);
     connect(removeSnapshotPushButton, &QPushButton::clicked, this, &Widget::removeSnapshot);
@@ -174,10 +167,11 @@ Widget::Widget(QWidget *parent): QWidget(parent)
     connect(sectionComboBox, QOverload<int>::of(&QComboBox::activated), [=](int sectionIndex){ selectSection(sectionIndex); });
     connect(addSectionPushButton, &QPushButton::clicked, this, &Widget::addSection);
     connect(removeSectionPushButton, &QPushButton::clicked, this, &Widget::removeSection);
+    connect(shiftTimeRangesCheckbox, &QCheckBox::toggled, [this](bool shift){ updateTimeRangeMinMax(shift); updateTimeStartControls(); updateTimeEndControls(); updateValidators(); });
     connect(timeStartLineEdit, &QLineEdit::returnPressed, this, &Widget::onTimeStartLineEditReturnPressed);
     connect(timeEndLineEdit, &QLineEdit::returnPressed, this, &Widget::onTimeEndLineEditReturnPressed);
-    connect(timeStartSlider, &QSlider::sliderMoved, this, &Widget::onTimeStartSliderValueChanged);
-    connect(timeEndSlider, &QSlider::sliderMoved, this, &Widget::onTimeEndSliderValueChanged);
+    connect(timeStartSlider, &QSlider::valueChanged, this, &Widget::onTimeStartSliderValueChanged);
+    connect(timeEndSlider, &QSlider::valueChanged, this, &Widget::onTimeEndSliderValueChanged);
 
     // Sections setup
 
@@ -283,7 +277,7 @@ void Widget::constructParameterControls(int modelIndex)
         parameterSlider.push_back(slider);
 
         connect(lineEdit, &QLineEdit::returnPressed, [=]{ onParameterLineEditReturnPressed(i); });
-        connect(slider, &QSlider::sliderMoved, [=](int value){ onParameterSliderValueChanged(i, value); });
+        connect(slider, &QSlider::valueChanged, [=](int value){ onParameterSliderValueChanged(i, value); });
     }
 }
 
@@ -371,26 +365,6 @@ void Widget::setPlotTabs(int modelIndex)
     }
 }
 
-void Widget::setTimeStartMinMax(int sectionIndex)
-{
-    int modelIndex = modelComboBox->currentIndex();
-
-    models[modelIndex]->setTimeStartMinMax(sectionIndex);
-
-    timeStartDoubleValidator->setBottom(models[modelIndex]->sections[sectionIndex].timeStartMin);
-    timeStartDoubleValidator->setTop(models[modelIndex]->sections[sectionIndex].timeStartMax);
-}
-
-void Widget::setTimeEndMinMax(int sectionIndex)
-{
-    int modelIndex = modelComboBox->currentIndex();
-
-    models[modelIndex]->setTimeEndMinMax(sectionIndex);
-
-    timeEndDoubleValidator->setBottom(models[modelIndex]->sections[sectionIndex].timeEndMin);
-    timeEndDoubleValidator->setTop(models[modelIndex]->sections[sectionIndex].timeEndMax);
-}
-
 void Widget::updateSectionComboBox(int modelIndex)
 {
     sectionComboBox->clear();
@@ -427,9 +401,6 @@ void Widget::addInitialSections()
 void Widget::selectSection(int sectionIndex)
 {
     int modelIndex = modelComboBox->currentIndex();
-
-    models[modelIndex]->setTimeStartMinMax(sectionIndex);
-    models[modelIndex]->setTimeEndMinMax(sectionIndex);
 
     if (sectionIndex == 0)
     {
@@ -500,27 +471,77 @@ void Widget::removeSection()
 
 void Widget::updateSectionControls()
 {
+    updateTimeStartControls();
+    updateTimeEndControls();
+    updateValidators();
+    updateParameterControls();
+}
+
+void Widget::updateTimeStartControls()
+{
     int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = models[modelIndex]->currentSectionIndex;
 
     timeStartLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeStart));
+
+    bool startSliderState = timeStartSlider->blockSignals(true);
+
+    int timeStartSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
+    timeStartSlider->setValue(timeStartSliderPosition);
+
+    timeStartSlider->blockSignals(startSliderState);
+}
+
+void Widget::updateTimeEndControls()
+{
+    int modelIndex = modelComboBox->currentIndex();
+    int sectionIndex = models[modelIndex]->currentSectionIndex;
+
     timeEndLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeEnd));
+
+    bool endSliderState = timeEndSlider->blockSignals(true);
+
+    int timeEndSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
+    timeEndSlider->setValue(timeEndSliderPosition);
+
+    timeEndSlider->blockSignals(endSliderState);
+}
+
+void Widget::updateValidators()
+{
+    int modelIndex = modelComboBox->currentIndex();
+    int sectionIndex = models[modelIndex]->currentSectionIndex;
+
+    timeStartDoubleValidator->setBottom(models[modelIndex]->sections[sectionIndex].timeStartMin);
+    timeStartDoubleValidator->setTop(models[modelIndex]->sections[sectionIndex].timeStartMax);
+
+    timeEndDoubleValidator->setBottom(models[modelIndex]->sections[sectionIndex].timeEndMin);
+    timeEndDoubleValidator->setTop(models[modelIndex]->sections[sectionIndex].timeEndMax);
+}
+
+void Widget::updateParameterControls()
+{
+    int modelIndex = modelComboBox->currentIndex();
+    int sectionIndex = models[modelIndex]->currentSectionIndex;
 
     for (int i = 0; i < models[modelIndex]->numParameters; i++)
     {
         parameterLineEdit[i]->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].parameters[i]));
     }
 
-    int timeStartSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
-    timeStartSlider->setSliderPosition(timeStartSliderPosition);
-
-    int timeEndSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
-    timeEndSlider->setSliderPosition(timeEndSliderPosition);
-
     for (int i = 0; i < models[modelIndex]->numParameters; i++)
     {
          int parameterSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexParameter(i, parameterSlider[i]->maximum());
-         parameterSlider[i]->setSliderPosition(parameterSliderPosition);
+         parameterSlider[i]->setValue(parameterSliderPosition);
+    }
+}
+
+void Widget::updateTimeRangeMinMax(bool shift)
+{
+    if (!shift)
+    {
+        int modelIndex = modelComboBox->currentIndex();
+        models[modelIndex]->updateTimeRangeMinMax();
     }
 }
 
@@ -529,10 +550,24 @@ void Widget::onTimeStartLineEditReturnPressed()
     int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
-    models[modelIndex]->sections[sectionIndex].timeStart = timeStartLineEdit->text().toDouble();
+    if (shiftTimeRangesCheckbox->isChecked())
+    {
+        double timeStart0 = models[modelIndex]->sections[sectionIndex].timeStart;
+        double timeStart1 = timeStartLineEdit->text().toDouble();
 
-    int sliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
-    timeStartSlider->setSliderPosition(sliderPosition);
+        models[modelIndex]->sections[sectionIndex].timeStart = timeStart1;
+        models[modelIndex]->shiftTimeRanges(sectionIndex, timeStart1 - timeStart0);
+
+        updateTimeEndControls();
+    }
+    else
+    {
+        models[modelIndex]->sections[sectionIndex].timeStart = timeStartLineEdit->text().toDouble();
+        models[modelIndex]->onTimeStartChanged(sectionIndex);
+    }
+
+    updateTimeStartControls();
+    updateValidators();
 
     integrate(modelIndex, true);
 }
@@ -543,9 +578,10 @@ void Widget::onTimeEndLineEditReturnPressed()
     int sectionIndex = sectionComboBox->currentIndex();
 
     models[modelIndex]->sections[sectionIndex].timeEnd = timeEndLineEdit->text().toDouble();
+    models[modelIndex]->onTimeEndChanged(sectionIndex);
 
-    int sliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
-    timeEndSlider->setSliderPosition(sliderPosition);
+    updateTimeEndControls();
+    updateValidators();
 
     integrate(modelIndex, false);
 }
@@ -555,11 +591,25 @@ void Widget::onTimeStartSliderValueChanged(int value)
     int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
-    models[modelIndex]->sections[sectionIndex].setTimeStart(value, timeStartSlider->maximum());
+    if (shiftTimeRangesCheckbox->isChecked())
+    {
+        double timeStart0 = models[modelIndex]->sections[sectionIndex].timeStart;
+        models[modelIndex]->sections[sectionIndex].setTimeStart(value, timeStartSlider->maximum());
 
-    models[modelIndex]->setTimeEndMinMax(sectionIndex);
+        double timeStart1 = models[modelIndex]->sections[sectionIndex].timeStart;
+        models[modelIndex]->shiftTimeRanges(sectionIndex, timeStart1 - timeStart0);
+
+        updateTimeEndControls();
+    }
+    else
+    {
+        models[modelIndex]->sections[sectionIndex].setTimeStart(value, timeStartSlider->maximum());
+        models[modelIndex]->onTimeStartChanged(sectionIndex);
+    }
 
     timeStartLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeStart));
+
+    updateValidators();
 
     integrate(modelIndex, true);
 }
@@ -570,10 +620,24 @@ void Widget::onTimeEndSliderValueChanged(int value)
     int sectionIndex = sectionComboBox->currentIndex();
 
     models[modelIndex]->sections[sectionIndex].setTimeEnd(value, timeEndSlider->maximum());
-
-    models[modelIndex]->setTimeStartMinMax(sectionIndex);
+    models[modelIndex]->onTimeEndChanged(sectionIndex);
 
     timeEndLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeEnd));
+
+    if (value == timeEndSlider->maximum())
+    {
+        bool endSliderState = timeEndSlider->blockSignals(true);
+        int sliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
+        timeEndSlider->setValue(sliderPosition);
+        timeEndSlider->blockSignals(endSliderState);
+    }
+
+    bool startSliderState = timeStartSlider->blockSignals(true);
+    int timeStartSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
+    timeStartSlider->setValue(timeStartSliderPosition);
+    timeStartSlider->blockSignals(startSliderState);
+
+    updateValidators();
 
     integrate(modelIndex, false);
 }
@@ -789,6 +853,11 @@ void Widget::integrate(int modelIndex, bool interpolation)
     typedef runge_kutta_dopri5<state_type> error_stepper_type;
 
     int sectionIndex = sectionComboBox->currentIndex();
+
+    if (shiftTimeRangesCheckbox->isChecked())
+    {
+        sectionIndex = 0;
+    }
 
     for (unsigned long i = sectionIndex; i < models[modelIndex]->sections.size(); i++)
     {

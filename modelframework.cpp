@@ -28,9 +28,6 @@ ModelFramework::ModelFramework(
     std::list<double> initialConditionsList,
     QWidget *parent): QWidget(parent)
 {
-    timeMin = 0.0;
-    timeMax = 1000.0;
-
     colors[0] = Qt::black;
     colors[1] = Qt::red;
     colors[2] = Qt::green;
@@ -98,9 +95,6 @@ ModelFramework::ModelFramework(const ModelFramework &mf, QWidget *parent): QWidg
 
     dimension = mf.dimension;
     numParameters = mf.numParameters;
-
-    timeMin = mf.timeMin;
-    timeMax = mf.timeMax;
 
     for (unsigned long i = 0; i < mf.variableShortNames.size(); i++)
     {
@@ -487,49 +481,93 @@ void ModelFramework::setGraphsOnRemoveSection(int sectionIndex)
     }
 }
 
-void ModelFramework::setTimeStartMinMax(int sectionIndex)
+void ModelFramework::onTimeStartChanged(int sectionIndex)
 {
-    double t0 = timeMin;
-    double t1 = sections[sectionIndex].timeEnd;
-
-    if (sectionIndex - 1 > 0)
+    if (sectionIndex - 1 >= 0)
     {
-        t0 = sections[sectionIndex - 1].timeStart;
+        sections[sectionIndex - 1].timeStartMax = sections[sectionIndex].timeStart;
+        sections[sectionIndex - 1].timeEndMin = sections[sectionIndex].timeStart;
     }
 
     if (sectionIndex + 1 < static_cast<int>(sections.size()))
     {
-        t1 = sections[sectionIndex + 1].timeStart;
+        sections[sectionIndex + 1].timeStartMin = sections[sectionIndex].timeStart;
+    }
+    else
+    {
+        sections[sectionIndex].timeEndMin = sections[sectionIndex].timeStart;
     }
 
-    sections[sectionIndex].timeStartMin = t0;
-    sections[sectionIndex].timeStartMax = t1;
 }
 
-void ModelFramework::setTimeEndMinMax(int sectionIndex)
+void ModelFramework::onTimeEndChanged(int sectionIndex)
 {
-    double t0 = sections[sectionIndex].timeStart;
-    double t1 = timeMax;
-
     if (sectionIndex + 1 < static_cast<int>(sections.size()))
     {
-        t0 = sections[sectionIndex + 1].timeStart;
+        sections[sectionIndex + 1].timeStartMax = sections[sectionIndex].timeEnd;
     }
 
-    sections[sectionIndex].timeEndMin = t0;
-    sections[sectionIndex].timeEndMax = t1;
+    if (sections.size() == 1)
+    {
+        sections[sectionIndex].timeStartMax = sections[sectionIndex].timeEnd;
+    }
+
+    if (sections[sectionIndex].timeEnd >= sections[sectionIndex].timeEndMax)
+    {
+        sections[sectionIndex].timeEndMax += 10.0;
+    }
+}
+
+void ModelFramework::shiftTimeRanges(int sectionIndex, double delta)
+{
+    for (size_t i = sectionIndex + 1; i < sections.size(); i++)
+    {
+        sections[i].timeStart += delta;
+        sections[i].timeStartMin += delta;
+    }
+
+    if (sections.size() == 1)
+    {
+        sections[sectionIndex].timeStartMin += delta;
+    }
+
+    int i0 = sectionIndex - 1 >= 0 ? sectionIndex - 1 : 0;
+
+    for (size_t i = i0; i < sections.size(); i++)
+    {
+        sections[i].timeStartMax += delta;
+    }
+
+    for (size_t i = i0; i < sections.size(); i++)
+    {
+        sections[i].timeEnd += delta;
+        sections[i].timeEndMin += delta;
+        sections[i].timeEndMax += delta;
+    }
+}
+
+void ModelFramework::updateTimeRangeMinMax()
+{
+    for (size_t i = 0; i < sections.size(); i++)
+    {
+        onTimeStartChanged(i);
+        onTimeEndChanged(i);
+    }
 }
 
 void ModelFramework::addSection()
 {
     if (sections.empty())
     {
-        Section section(initialConditions, parameterInit, parameterMin, parameterMax, 0.0, 50.0);
+        Section section(initialConditions, parameterInit, parameterMin, parameterMax, 0.0, 0.0, 100.0, 100.0, 0.0, 110.0);
         sections.push_back(section);
     }
     else
     {
-        sections.push_back(sections.back());
+        Section section = sections.back();
+        section.timeStartMin = section.timeStart;
+        section.timeStartMax = section.timeEnd;
+        sections.push_back(section);
     }
 
     currentSectionIndex = sections.size() - 1;
