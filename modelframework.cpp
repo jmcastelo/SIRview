@@ -18,6 +18,7 @@
 #include "modelframework.h"
 
 ModelFramework::ModelFramework(
+    int index,
     QString modelName,
     std::list<QString> variableShortNamesList,
     std::list<QString> variableLongNamesList,
@@ -47,6 +48,8 @@ ModelFramework::ModelFramework(
     currentSnapshotIndex = -1;
 
     name = modelName;
+
+    modelIndex = index;
 
     for (std::list<QString>::iterator it = variableShortNamesList.begin(); it != variableShortNamesList.end(); ++it)
     {

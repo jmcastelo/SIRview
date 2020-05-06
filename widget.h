@@ -47,6 +47,7 @@ public:
     ~Widget();
 
 private:
+    ModelFramework *currentModel;
     std::vector<ModelFramework*> models;
     std::vector<std::list<ModelFramework>> snapshots;
 
@@ -96,14 +97,14 @@ private:
     void updateSumInitialConditionsLabel();
 
     void deleteParameterControls();
-    void constructParameterControls(int modelIndex);
+    void constructParameterControls();
 
     void deleteInitialConditionsControls();
-    void constructInitialConditionsControls(int modelIndex);
+    void constructInitialConditionsControls();
 
-    void setPlotTabs(int modelIndex);
+    void setPlotTabs();
 
-    void updateSectionComboBox(int modelIndex);
+    void updateSectionComboBox();
 
     void updateSectionControls();
     void updateTimeStartControls();
@@ -123,7 +124,7 @@ private:
     void removeSnapshot();
     void updateSnapshotWidgets(int modelIndex);
 
-    void integrate(int modelIndex, bool interpolation);
+    void integrate(ModelFramework *model, bool interpolation);
 };
 
 #endif // WIDGET_H

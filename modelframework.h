@@ -35,6 +35,7 @@ class ModelFramework: public QWidget
 public:
     QString name;
 
+    int modelIndex;
     int dimension;
     int numParameters;
 
@@ -58,6 +59,7 @@ public:
     int currentSnapshotIndex;
 
     ModelFramework(
+        int index,
         QString modelName,
         std::list<QString> variableShortNamesList,
         std::list<QString> variableLongNamesList,

@@ -21,11 +21,13 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 {
     // Models
 
-    models.push_back(new ModelFramework("SIR", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0"}, {0.0}, {20.0}, {2.5}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
-    models.push_back(new ModelFramework("SIRS", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
-    models.push_back(new ModelFramework("SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0, 0.0}));
-    models.push_back(new ModelFramework("SIR + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
-    models.push_back(new ModelFramework("SIRS + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1", "P3"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ModelFramework(0, "SIR", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0"}, {0.0}, {20.0}, {2.5}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ModelFramework(1, "SIRS", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ModelFramework(2, "SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0, 0.0}));
+    models.push_back(new ModelFramework(3, "SIR + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ModelFramework(4, "SIRS + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1", "P3"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+
+    currentModel = models[0];
 
     // Init snapshots vector
 
@@ -155,10 +157,11 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     // Signals + Slots
 
-    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ constructParameterControls(modelIndex); });
-    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ constructInitialConditionsControls(modelIndex); });
-    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ setPlotTabs(modelIndex); });
-    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ updateSectionComboBox(modelIndex); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ currentModel = models[modelIndex]; });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) constructInitialConditionsControls(); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) constructParameterControls(); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) setPlotTabs(); });
+    connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) updateSectionComboBox(); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) updateSectionControls(); updateInitialConditionsControls(); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ updateSnapshotWidgets(modelIndex); });
     connect(takeSnapshotPushButton, &QPushButton::clicked, this, &Widget::takeSnapshot);
@@ -175,13 +178,13 @@ Widget::Widget(QWidget *parent): QWidget(parent)
 
     // Sections setup
 
-    constructInitialConditionsControls(0);
-    constructParameterControls(0);
+    constructInitialConditionsControls();
+    constructParameterControls();
     addInitialSections();
 
     // Set plot tabs
 
-    setPlotTabs(0);
+    setPlotTabs();
 
     // Main widget
 
@@ -242,25 +245,25 @@ void Widget::deleteParameterControls()
     }
 }
 
-void Widget::constructParameterControls(int modelIndex)
+void Widget::constructParameterControls()
 {
     deleteParameterControls();
 
-    for (int i = 0; i < models[modelIndex]->numParameters; i++)
+    for (int i = 0; i < currentModel->numParameters; i++)
     {
         QLineEdit *lineEdit = new QLineEdit;
 
-        CustomValidator *validator = new CustomValidator(models[modelIndex]->parameterMin[i], models[modelIndex]->parameterMax[i], 10, lineEdit);
+        CustomValidator *validator = new CustomValidator(currentModel->parameterMin[i], currentModel->parameterMax[i], 10, lineEdit);
         validator->setNotation(QDoubleValidator::StandardNotation);
         validator->setLocale(QLocale::English);
 
         lineEdit->setValidator(validator);
 
-        models[modelIndex]->parameterNames[i];
+        currentModel->parameterNames[i];
 
         QHBoxLayout *hBoxLayout = new QHBoxLayout;
 
-        hBoxLayout->addWidget(models[modelIndex]->parameterNames[i]);
+        hBoxLayout->addWidget(currentModel->parameterNames[i]);
         hBoxLayout->addWidget(lineEdit);
 
         QSlider *slider = new QSlider(Qt::Horizontal);
@@ -271,7 +274,7 @@ void Widget::constructParameterControls(int modelIndex)
         parameterVBoxLayout->addLayout(hBoxLayout);
         parameterVBoxLayout->addWidget(slider);
 
-        models[modelIndex]->parameterNames[i]->show();
+        currentModel->parameterNames[i]->show();
 
         parameterLineEdit.push_back(lineEdit);
         parameterSlider.push_back(slider);
@@ -318,11 +321,11 @@ void Widget::deleteInitialConditionsControls()
     }
 }
 
-void Widget::constructInitialConditionsControls(int modelIndex)
+void Widget::constructInitialConditionsControls()
 {
     deleteInitialConditionsControls();
 
-    for (int i = 0; i < models[modelIndex]->dimension; i++)
+    for (int i = 0; i < currentModel->dimension; i++)
     {
         QLineEdit *lineEdit = new QLineEdit;
 
@@ -335,12 +338,12 @@ void Widget::constructInitialConditionsControls(int modelIndex)
 
         QHBoxLayout *hBoxLayout = new QHBoxLayout;
 
-        hBoxLayout->addWidget(models[modelIndex]->variableShortNames[i]);
+        hBoxLayout->addWidget(currentModel->variableShortNames[i]);
         hBoxLayout->addWidget(lineEdit);
 
         initialConditionsVBoxLayout->addLayout(hBoxLayout);
 
-        models[modelIndex]->variableShortNames[i]->show();
+        currentModel->variableShortNames[i]->show();
 
         initialConditionsLineEdit.push_back(lineEdit);
 
@@ -352,31 +355,31 @@ void Widget::constructInitialConditionsControls(int modelIndex)
     initialConditionsVBoxLayout->addWidget(sumInitialConditionsLabel);
 }
 
-void Widget::setPlotTabs(int modelIndex)
+void Widget::setPlotTabs()
 {
     plotsTabWidget->clear();
 
-    plotsTabWidget->addTab(models[modelIndex]->plotsGridWidget, "All");
-    plotsTabWidget->addTab(models[modelIndex]->allVariablesPlot, "Joint");
+    plotsTabWidget->addTab(currentModel->plotsGridWidget, "All");
+    plotsTabWidget->addTab(currentModel->allVariablesPlot, "Joint");
 
-    for (int i = 0; i < models[modelIndex]->dimension; i++)
+    for (int i = 0; i < currentModel->dimension; i++)
     {
-        plotsTabWidget->addTab(models[modelIndex]->plots[i], models[modelIndex]->variableLongNames[i]->text());
+        plotsTabWidget->addTab(currentModel->plots[i], currentModel->variableLongNames[i]->text());
     }
 }
 
-void Widget::updateSectionComboBox(int modelIndex)
+void Widget::updateSectionComboBox()
 {
     sectionComboBox->clear();
 
-    for (unsigned long i = 0; i < models[modelIndex]->sections.size(); i++)
+    for (unsigned long i = 0; i < currentModel->sections.size(); i++)
     {
         sectionComboBox->addItem(QString("Section %1").arg(i + 1));
     }
 
-    sectionComboBox->setCurrentIndex(models[modelIndex]->currentSectionIndex);
+    sectionComboBox->setCurrentIndex(currentModel->currentSectionIndex);
 
-    selectSection(models[modelIndex]->currentSectionIndex);
+    selectSection(currentModel->currentSectionIndex);
 }
 
 void Widget::addInitialSections()
@@ -394,19 +397,18 @@ void Widget::addInitialSections()
 
     for (unsigned long modelIndex = 0; modelIndex < models.size(); modelIndex++)
     {
-        integrate(modelIndex, false);
+        ModelFramework *model = models[modelIndex];
+        integrate(model, false);
     }
 }
 
 void Widget::selectSection(int sectionIndex)
 {
-    int modelIndex = modelComboBox->currentIndex();
-
     if (sectionIndex == 0)
     {
         removeSectionPushButton->setEnabled(false);
 
-        for (int i = 0; i < models[modelIndex]->dimension; i++)
+        for (int i = 0; i < currentModel->dimension; i++)
         {
             initialConditionsLineEdit[i]->setEnabled(true);
         }
@@ -415,13 +417,13 @@ void Widget::selectSection(int sectionIndex)
     {
         removeSectionPushButton->setEnabled(true);
 
-        for (int i = 0; i < models[modelIndex]->dimension; i++)
+        for (int i = 0; i < currentModel->dimension; i++)
         {
             initialConditionsLineEdit[i]->setEnabled(false);
         }
     }
 
-    models[modelIndex]->currentSectionIndex = sectionIndex;
+    currentModel->currentSectionIndex = sectionIndex;
 
     updateSectionControls();
     updateInitialConditionsControls();
@@ -429,11 +431,9 @@ void Widget::selectSection(int sectionIndex)
 
 void Widget::addSection()
 {
-    int modelIndex = modelComboBox->currentIndex();
+    currentModel->addSection();
 
-    models[modelIndex]->addSection();
-
-    int sectionIndex = models[modelIndex]->currentSectionIndex;
+    int sectionIndex = currentModel->currentSectionIndex;
 
     sectionComboBox->addItem(QString("Section %1").arg(sectionIndex + 1));
     sectionComboBox->setCurrentIndex(sectionIndex);
@@ -443,29 +443,27 @@ void Widget::addSection()
 
 void Widget::removeSection()
 {
-    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
-
-    int jmax = models[modelIndex]->sections.size() - 1;
+    int jmax = currentModel->sections.size() - 1;
 
     for (int j = jmax; j >= sectionIndex; j--)
     {
         sectionComboBox->removeItem(j);
     }
 
-    models[modelIndex]->removeSection(sectionIndex);
+    currentModel->removeSection(sectionIndex);
 
-    sectionIndex = models[modelIndex]->currentSectionIndex;
+    sectionIndex = currentModel->currentSectionIndex;
 
     selectSection(sectionIndex);
 
     if (sectionIndex == 0)
     {
-        integrate(modelIndex, false);
+        integrate(currentModel, false);
     }
     else
     {
-        integrate(modelIndex, true);
+        integrate(currentModel, true);
     }
 }
 
@@ -479,14 +477,13 @@ void Widget::updateSectionControls()
 
 void Widget::updateTimeStartControls()
 {
-    int modelIndex = modelComboBox->currentIndex();
-    int sectionIndex = models[modelIndex]->currentSectionIndex;
+    int sectionIndex = currentModel->currentSectionIndex;
 
-    timeStartLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeStart));
+    timeStartLineEdit->setText(QString("%1").arg(currentModel->sections[sectionIndex].timeStart));
 
     bool startSliderState = timeStartSlider->blockSignals(true);
 
-    int timeStartSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
+    int timeStartSliderPosition = currentModel->sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
     timeStartSlider->setValue(timeStartSliderPosition);
 
     timeStartSlider->blockSignals(startSliderState);
@@ -494,14 +491,13 @@ void Widget::updateTimeStartControls()
 
 void Widget::updateTimeEndControls()
 {
-    int modelIndex = modelComboBox->currentIndex();
-    int sectionIndex = models[modelIndex]->currentSectionIndex;
+    int sectionIndex = currentModel->currentSectionIndex;
 
-    timeEndLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeEnd));
+    timeEndLineEdit->setText(QString("%1").arg(currentModel->sections[sectionIndex].timeEnd));
 
     bool endSliderState = timeEndSlider->blockSignals(true);
 
-    int timeEndSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
+    int timeEndSliderPosition = currentModel->sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
     timeEndSlider->setValue(timeEndSliderPosition);
 
     timeEndSlider->blockSignals(endSliderState);
@@ -509,29 +505,27 @@ void Widget::updateTimeEndControls()
 
 void Widget::updateValidators()
 {
-    int modelIndex = modelComboBox->currentIndex();
-    int sectionIndex = models[modelIndex]->currentSectionIndex;
+    int sectionIndex = currentModel->currentSectionIndex;
 
-    timeStartDoubleValidator->setBottom(models[modelIndex]->sections[sectionIndex].timeStartMin);
-    timeStartDoubleValidator->setTop(models[modelIndex]->sections[sectionIndex].timeStartMax);
+    timeStartDoubleValidator->setBottom(currentModel->sections[sectionIndex].timeStartMin);
+    timeStartDoubleValidator->setTop(currentModel->sections[sectionIndex].timeStartMax);
 
-    timeEndDoubleValidator->setBottom(models[modelIndex]->sections[sectionIndex].timeEndMin);
-    timeEndDoubleValidator->setTop(models[modelIndex]->sections[sectionIndex].timeEndMax);
+    timeEndDoubleValidator->setBottom(currentModel->sections[sectionIndex].timeEndMin);
+    timeEndDoubleValidator->setTop(currentModel->sections[sectionIndex].timeEndMax);
 }
 
 void Widget::updateParameterControls()
 {
-    int modelIndex = modelComboBox->currentIndex();
-    int sectionIndex = models[modelIndex]->currentSectionIndex;
+    int sectionIndex = currentModel->currentSectionIndex;
 
-    for (int i = 0; i < models[modelIndex]->numParameters; i++)
+    for (int i = 0; i < currentModel->numParameters; i++)
     {
-        parameterLineEdit[i]->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].parameters[i]));
+        parameterLineEdit[i]->setText(QString("%1").arg(currentModel->sections[sectionIndex].parameters[i]));
     }
 
-    for (int i = 0; i < models[modelIndex]->numParameters; i++)
+    for (int i = 0; i < currentModel->numParameters; i++)
     {
-         int parameterSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexParameter(i, parameterSlider[i]->maximum());
+         int parameterSliderPosition = currentModel->sections[sectionIndex].getIndexParameter(i, parameterSlider[i]->maximum());
          parameterSlider[i]->setValue(parameterSliderPosition);
     }
 }
@@ -540,152 +534,142 @@ void Widget::updateTimeRangeMinMax(bool shift)
 {
     if (!shift)
     {
-        int modelIndex = modelComboBox->currentIndex();
-        models[modelIndex]->updateTimeRangeMinMax();
+        currentModel->updateTimeRangeMinMax();
     }
 }
 
 void Widget::onTimeStartLineEditReturnPressed()
 {
-    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
     if (shiftTimeRangesCheckbox->isChecked())
     {
-        double timeStart0 = models[modelIndex]->sections[sectionIndex].timeStart;
+        double timeStart0 = currentModel->sections[sectionIndex].timeStart;
         double timeStart1 = timeStartLineEdit->text().toDouble();
 
-        models[modelIndex]->sections[sectionIndex].timeStart = timeStart1;
-        models[modelIndex]->shiftTimeRanges(sectionIndex, timeStart1 - timeStart0);
+        currentModel->sections[sectionIndex].timeStart = timeStart1;
+        currentModel->shiftTimeRanges(sectionIndex, timeStart1 - timeStart0);
 
         updateTimeEndControls();
     }
     else
     {
-        models[modelIndex]->sections[sectionIndex].timeStart = timeStartLineEdit->text().toDouble();
-        models[modelIndex]->onTimeStartChanged(sectionIndex);
+        currentModel->sections[sectionIndex].timeStart = timeStartLineEdit->text().toDouble();
+        currentModel->onTimeStartChanged(sectionIndex);
     }
 
     updateTimeStartControls();
     updateValidators();
 
-    integrate(modelIndex, true);
+    integrate(currentModel, true);
 }
 
 void Widget::onTimeEndLineEditReturnPressed()
 {
-    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
-    models[modelIndex]->sections[sectionIndex].timeEnd = timeEndLineEdit->text().toDouble();
-    models[modelIndex]->onTimeEndChanged(sectionIndex);
+    currentModel->sections[sectionIndex].timeEnd = timeEndLineEdit->text().toDouble();
+    currentModel->onTimeEndChanged(sectionIndex);
 
     updateTimeEndControls();
     updateValidators();
 
-    integrate(modelIndex, false);
+    integrate(currentModel, false);
 }
 
 void Widget::onTimeStartSliderValueChanged(int value)
 {
-    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
     if (shiftTimeRangesCheckbox->isChecked())
     {
-        double timeStart0 = models[modelIndex]->sections[sectionIndex].timeStart;
-        models[modelIndex]->sections[sectionIndex].setTimeStart(value, timeStartSlider->maximum());
+        double timeStart0 = currentModel->sections[sectionIndex].timeStart;
+        currentModel->sections[sectionIndex].setTimeStart(value, timeStartSlider->maximum());
 
-        double timeStart1 = models[modelIndex]->sections[sectionIndex].timeStart;
-        models[modelIndex]->shiftTimeRanges(sectionIndex, timeStart1 - timeStart0);
+        double timeStart1 = currentModel->sections[sectionIndex].timeStart;
+        currentModel->shiftTimeRanges(sectionIndex, timeStart1 - timeStart0);
 
         updateTimeEndControls();
     }
     else
     {
-        models[modelIndex]->sections[sectionIndex].setTimeStart(value, timeStartSlider->maximum());
-        models[modelIndex]->onTimeStartChanged(sectionIndex);
+        currentModel->sections[sectionIndex].setTimeStart(value, timeStartSlider->maximum());
+        currentModel->onTimeStartChanged(sectionIndex);
     }
 
-    timeStartLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeStart));
+    timeStartLineEdit->setText(QString("%1").arg(currentModel->sections[sectionIndex].timeStart));
 
     updateValidators();
 
-    integrate(modelIndex, true);
+    integrate(currentModel, true);
 }
 
 void Widget::onTimeEndSliderValueChanged(int value)
 {
-    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
-    models[modelIndex]->sections[sectionIndex].setTimeEnd(value, timeEndSlider->maximum());
-    models[modelIndex]->onTimeEndChanged(sectionIndex);
+    currentModel->sections[sectionIndex].setTimeEnd(value, timeEndSlider->maximum());
+    currentModel->onTimeEndChanged(sectionIndex);
 
-    timeEndLineEdit->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].timeEnd));
+    timeEndLineEdit->setText(QString("%1").arg(currentModel->sections[sectionIndex].timeEnd));
 
     if (value == timeEndSlider->maximum())
     {
         bool endSliderState = timeEndSlider->blockSignals(true);
-        int sliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
+        int sliderPosition = currentModel->sections[sectionIndex].getIndexTimeEnd(timeEndSlider->maximum());
         timeEndSlider->setValue(sliderPosition);
         timeEndSlider->blockSignals(endSliderState);
     }
 
     bool startSliderState = timeStartSlider->blockSignals(true);
-    int timeStartSliderPosition = models[modelIndex]->sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
+    int timeStartSliderPosition = currentModel->sections[sectionIndex].getIndexTimeStart(timeStartSlider->maximum());
     timeStartSlider->setValue(timeStartSliderPosition);
     timeStartSlider->blockSignals(startSliderState);
 
     updateValidators();
 
-    integrate(modelIndex, false);
+    integrate(currentModel, false);
 }
 
 void Widget::onParameterLineEditReturnPressed(int index)
 {
-    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
-    models[modelIndex]->sections[sectionIndex].parameters[index] = parameterLineEdit[index]->text().toDouble();
+    currentModel->sections[sectionIndex].parameters[index] = parameterLineEdit[index]->text().toDouble();
 
-    int sliderPosition = models[modelIndex]->sections[sectionIndex].getIndexParameter(index, parameterSlider[index]->maximum());
+    int sliderPosition = currentModel->sections[sectionIndex].getIndexParameter(index, parameterSlider[index]->maximum());
     parameterSlider[index]->setSliderPosition(sliderPosition);
 
-    integrate(modelIndex, false);
+    integrate(currentModel, false);
 }
 
 void Widget::onParameterSliderValueChanged(int index, int value)
 {
-    int modelIndex = modelComboBox->currentIndex();
     int sectionIndex = sectionComboBox->currentIndex();
 
-    models[modelIndex]->sections[sectionIndex].setParameter(index, value, parameterSlider[index]->maximum());
+    currentModel->sections[sectionIndex].setParameter(index, value, parameterSlider[index]->maximum());
 
-    parameterLineEdit[index]->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].parameters[index]));
+    parameterLineEdit[index]->setText(QString("%1").arg(currentModel->sections[sectionIndex].parameters[index]));
 
-    integrate(modelIndex, false);
+    integrate(currentModel, false);
 }
 
 void Widget::onInitialConditionsLineEditReturnPressed(int index)
 {
-    int modelIndex = modelComboBox->currentIndex();
-
-    models[modelIndex]->sections[0].x0[index] = initialConditionsLineEdit[index]->text().toDouble();
+    currentModel->sections[0].x0[index] = initialConditionsLineEdit[index]->text().toDouble();
 
     updateSumInitialConditionsLabel();
 
-    integrate(modelIndex, false);
+    integrate(currentModel, false);
 }
 
 void Widget::updateInitialConditionsControls()
 {
-    int modelIndex = modelComboBox->currentIndex();
-    int sectionIndex = models[modelIndex]->currentSectionIndex;
+    int sectionIndex = currentModel->currentSectionIndex;
 
-    for (int i = 0; i < models[modelIndex]->dimension; i++)
+    for (int i = 0; i < currentModel->dimension; i++)
     {
-        initialConditionsLineEdit[i]->setText(QString("%1").arg(models[modelIndex]->sections[sectionIndex].x0[i]));
+        initialConditionsLineEdit[i]->setText(QString("%1").arg(currentModel->sections[sectionIndex].x0[i]));
     }
 
     updateSumInitialConditionsLabel();
@@ -693,17 +677,16 @@ void Widget::updateInitialConditionsControls()
 
 void Widget::updateSumInitialConditionsLabel()
 {
-    int modelIndex = modelComboBox->currentIndex();
-    int sectionIndex = models[modelIndex]->currentSectionIndex;
+    int sectionIndex = currentModel->currentSectionIndex;
 
     QString text;
     double sum = 0.0;
 
-    for (int i = 0; i < models[modelIndex]->dimension; i++)
+    for (int i = 0; i < currentModel->dimension; i++)
     {
-        text.append(models[modelIndex]->variableShortNames[i]->text());
+        text.append(currentModel->variableShortNames[i]->text());
 
-        if (i < models[modelIndex]->dimension - 1)
+        if (i < currentModel->dimension - 1)
         {
             text.append(" + ");
         }
@@ -712,7 +695,7 @@ void Widget::updateSumInitialConditionsLabel()
             text.append(" = ");
         }
 
-        sum += models[modelIndex]->sections[sectionIndex].x0[i];
+        sum += currentModel->sections[sectionIndex].x0[i];
     }
 
     text.append(QString("%1").arg(sum));
@@ -736,25 +719,24 @@ void Widget::takeSnapshot()
 
     removeSnapshotPushButton->setEnabled(true);
 
-    models[modelIndex]->currentSnapshotIndex = snapshotIndex;
+    currentModel->currentSnapshotIndex = snapshotIndex;
 }
 
 void Widget::selectSnapshot(int snapshotIndex)
 {
     updateSnapshotTab(snapshotIndex);
 
-    int modelIndex = modelComboBox->currentIndex();
-    int snapshotTabIndex = 2 + models[modelIndex]->dimension;
+    int snapshotTabIndex = 2 + currentModel->dimension;
 
     plotsTabWidget->setCurrentIndex(snapshotTabIndex);
 
-    models[modelIndex]->currentSnapshotIndex = snapshotIndex;
+    currentModel->currentSnapshotIndex = snapshotIndex;
 }
 
 void Widget::updateSnapshotTab(int snapshotIndex)
 {
     int modelIndex = modelComboBox->currentIndex();
-    int snapshotTabIndex = 2 + models[modelIndex]->dimension;
+    int snapshotTabIndex = 2 + currentModel->dimension;
     int plotsTabWidgetIndex = plotsTabWidget->currentIndex();
 
     if (snapshots[modelIndex].size() > 1)
@@ -771,7 +753,7 @@ void Widget::updateSnapshotTab(int snapshotIndex)
 void Widget::removeSnapshot()
 {
     int modelIndex = modelComboBox->currentIndex();
-    int snapshotTabIndex = 2 + models[modelIndex]->dimension;
+    int snapshotTabIndex = 2 + currentModel->dimension;
     int plotsTabWidgetIndex = plotsTabWidget->currentIndex();
     int snapshotIndex = snapshotComboBox->currentIndex();
 
@@ -809,7 +791,7 @@ void Widget::removeSnapshot()
         }
     }
 
-    models[modelIndex]->currentSnapshotIndex = snapshotIndex - 1;
+    currentModel->currentSnapshotIndex = snapshotIndex - 1;
 }
 
 void Widget::updateSnapshotWidgets(int modelIndex)
@@ -846,7 +828,7 @@ void Widget::updateSnapshotWidgets(int modelIndex)
     }
 }
 
-void Widget::integrate(int modelIndex, bool interpolation)
+void Widget::integrate(ModelFramework *model, bool interpolation)
 {
     using namespace boost::numeric::odeint;
 
@@ -859,13 +841,13 @@ void Widget::integrate(int modelIndex, bool interpolation)
         sectionIndex = 0;
     }
 
-    for (unsigned long i = sectionIndex; i < models[modelIndex]->sections.size(); i++)
+    for (unsigned long i = sectionIndex; i < model->sections.size(); i++)
     {
-        Section *section = &models[modelIndex]->sections[i];
+        Section *section = &model->sections[i];
 
         if (interpolation && i > 0)
         {
-            section->interpolateX0(models[modelIndex]->sections[i - 1]);
+            section->interpolateX0(model->sections[i - 1]);
         }
 
         interpolation = true;
@@ -874,27 +856,27 @@ void Widget::integrate(int modelIndex, bool interpolation)
         section->steps.clear();
         section->times.clear();
 
-        if (modelIndex == 0) // SIR model
+        if (model->modelIndex == 0) // SIR model
         {
             SIR sir(section->parameters[0]);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sir, section->x, section->timeStart, section->timeEnd, 0.01, push_back_state_and_time(section->steps, section->times));
         }
-        else if (modelIndex == 1) // SIRS model
+        else if (model->modelIndex == 1) // SIRS model
         {
             SIRS sirs(section->parameters[0], section->parameters[1]);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirs, section->x, section->timeStart, section->timeEnd, 0.01, push_back_state_and_time(section->steps, section->times));
         }
-        else if (modelIndex == 2) // SIRA model
+        else if (model->modelIndex == 2) // SIRA model
         {
             SIRA sira(section->parameters[0], section->parameters[1]);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sira, section->x, section->timeStart, section->timeEnd, 0.01, push_back_state_and_time(section->steps, section->times));
         }
-        else if (modelIndex == 3) // SIR + Vital dynamics model
+        else if (model->modelIndex == 3) // SIR + Vital dynamics model
         {
             SIRVitalDynamics sirVitalDynamics(section->parameters[0], section->parameters[1]);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirVitalDynamics, section->x, section->timeStart, section->timeEnd, 0.01, push_back_state_and_time(section->steps, section->times));
         }
-        else if (modelIndex == 4) // SIRS + Vital dynamics model
+        else if (model->modelIndex == 4) // SIRS + Vital dynamics model
         {
             SIRSVitalDynamics sirsVitalDynamics(section->parameters[0], section->parameters[1], section->parameters[2]);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirsVitalDynamics, section->x, section->timeStart, section->timeEnd, 0.01, push_back_state_and_time(section->steps, section->times));
@@ -903,5 +885,5 @@ void Widget::integrate(int modelIndex, bool interpolation)
 
     updateInitialConditionsControls();
 
-    models[modelIndex]->setPlotsData();
+    model->setPlotsData();
 }
