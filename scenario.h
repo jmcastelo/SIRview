@@ -15,15 +15,15 @@
 // You should have received a copy of the GNU General Public License
 // along with SIRview.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef SECTION_H
-#define SECTION_H
+#ifndef SCENARIO_H
+#define SCENARIO_H
 
 #include <vector>
 #include <QVector>
 
 typedef std::vector<double> state_type;
 
-class Section
+class Scenario
 {
 public:
     state_type x;
@@ -38,7 +38,7 @@ public:
     double timeEnd, timeEndMin, timeEndMax;
     std::vector<double> parameters, parametersMin, parametersMax;
 
-    Section(std::vector<double> xStart, std::vector<double> p, std::vector<double> pMin, std::vector<double> pMax, double t0, double t0Min, double t0Max, double t1, double t1Min, double t1Max):
+    Scenario(std::vector<double> xStart, std::vector<double> p, std::vector<double> pMin, std::vector<double> pMax, double t0, double t0Min, double t0Max, double t1, double t1Min, double t1Max):
         x0(xStart),
         timeStart(t0),
         timeStartMin(t0Min),
@@ -58,10 +58,10 @@ public:
     int getIndexTimeEnd(int indexMax);
     int getIndexParameter(int k, int indexMax);
 
-    void interpolateX0(Section section);
+    void interpolateX0(Scenario scenario);
 
     void setAbscissaOrdinate();
     void setAbscissaOrdinate(double time);
 };
 
-#endif // SECTION_H
+#endif // SCENARIO_H

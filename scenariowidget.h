@@ -15,11 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with SIRview.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef WIDGET_H
-#define WIDGET_H
+#ifndef SCENARIOWIDGET_H
+#define SCENARIOWIDGET_H
 
 #include "models.h"
-#include "modelframework.h"
+#include "scenariomodel.h"
 #include "customvalidator.h"
 #include <vector>
 #include <list>
@@ -38,18 +38,18 @@
 #include <QGridLayout>
 #include <QCheckBox>
 
-class Widget: public QWidget
+class ScenarioWidget: public QWidget
 {
     Q_OBJECT
 
 public:
-    Widget(QWidget *parent = nullptr);
-    ~Widget();
+    ScenarioWidget(QWidget *parent = nullptr);
+    ~ScenarioWidget();
 
 private:
-    ModelFramework *currentModel;
-    std::vector<ModelFramework*> models;
-    std::vector<std::list<ModelFramework>> snapshots;
+    ScenarioModel *currentModel;
+    std::vector<ScenarioModel*> models;
+    std::vector<std::list<ScenarioModel>> snapshots;
 
     QComboBox *modelComboBox;
 
@@ -59,9 +59,9 @@ private:
 
     QVBoxLayout *mainControlsVBoxLayout;
 
-    QPushButton *addSectionPushButton;
-    QPushButton *removeSectionPushButton;
-    QComboBox *sectionComboBox;
+    QPushButton *addScenarioPushButton;
+    QPushButton *removeScenarioPushButton;
+    QComboBox *scenarioComboBox;
 
     QCheckBox *shiftTimeRangesCheckbox;
     //CustomValidator *timeStartDoubleValidator;
@@ -104,19 +104,19 @@ private:
 
     void setPlotTabs();
 
-    void updateSectionComboBox();
+    void updateScenarioComboBox();
 
-    void updateSectionControls();
+    void updateScenarioControls();
     void updateTimeStartControls();
     void updateTimeEndControls();
     void updateValidators();
     void updateParameterControls();
     void updateTimeRangeMinMax(bool shift);
 
-    void addInitialSections();
-    void selectSection(int index);
-    void addSection();
-    void removeSection();
+    void addInitialScenarios();
+    void selectScenario(int index);
+    void addScenario();
+    void removeScenario();
 
     void takeSnapshot();
     void selectSnapshot(int snapshotIndex);
@@ -124,7 +124,7 @@ private:
     void removeSnapshot();
     void updateSnapshotWidgets(int modelIndex);
 
-    void integrate(ModelFramework *model, bool interpolation);
+    void integrate(ScenarioModel *model, bool interpolation);
 };
 
-#endif // WIDGET_H
+#endif // SCENARIOWIDGET_H

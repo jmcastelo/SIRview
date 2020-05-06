@@ -15,10 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with SIRview.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef MODELFRAMEWORK_H
-#define MODELFRAMEWORK_H
+#ifndef SCENARIOMODEL_H
+#define SCENARIOMODEL_H
 
-#include "section.h"
+#include "basemodel.h"
+#include "scenario.h"
 #include "qcustomplot.h"
 #include <list>
 #include <vector>
@@ -28,23 +29,11 @@
 #include <QWidget>
 #include <QPen>
 
-class ModelFramework: public QWidget
+class ScenarioModel: public QWidget, public BaseModel
 {
     Q_OBJECT
 
 public:
-    QString name;
-
-    int modelIndex;
-    int dimension;
-    int numParameters;
-
-    std::vector<QLabel*> variableShortNames;
-    std::vector<QLabel*> variableLongNames;
-    std::vector<QLabel*> parameterNames;
-
-    std::vector<double> parameterMin;
-    std::vector<double> parameterMax;
     std::vector<double> parameterInit;
 
     std::vector<double> initialConditions;
@@ -53,12 +42,12 @@ public:
     QCustomPlot *allVariablesPlot;
     QWidget *plotsGridWidget;
 
-    std::vector<Section> sections;
-    int currentSectionIndex;
+    std::vector<Scenario> scenarios;
 
+    int currentScenarioIndex;
     int currentSnapshotIndex;
 
-    ModelFramework(
+    ScenarioModel(
         int index,
         QString modelName,
         std::list<QString> variableShortNamesList,
@@ -70,24 +59,24 @@ public:
         std::list<double> initialConditionsList,
         QWidget *parent = nullptr);
 
-    ModelFramework(const ModelFramework &mf, QWidget *parent = nullptr);
+    ScenarioModel(const ScenarioModel &model, QWidget *parent = nullptr);
 
-    ~ModelFramework();
+    ~ScenarioModel();
 
     void setPlotsData();
-    void setGraphsOnAddSection(int index);
-    void setGraphsOnRemoveSection(int index);
+    void setGraphsOnAddScenario(int scenarioIndex);
+    void setGraphsOnRemoveScenario(int scenarioIndex);
 
-    void onTimeStartChanged(int sectionIndex);
-    void onTimeEndChanged(int sectionIndex);
+    void onTimeStartChanged(int scenarioIndex);
+    void onTimeEndChanged(int scenarioIndex);
 
-    void shiftTimeRanges(int sectionIndex, double delta);
+    void shiftTimeRanges(int scenarioIndex, double delta);
 
     void updateTimeRangeMinMax();
 
-    void deleteSections();
-    void addSection();
-    void removeSection(int sectionIndex);
+    void deleteScenarios();
+    void addScenario();
+    void removeScenario(int scenarioIndex);
 
 private:
     Qt::GlobalColor colors[14];
@@ -96,4 +85,4 @@ private:
     void constructGraphs();
 };
 
-#endif // MODELFRAMEWORK_H
+#endif // SCENARIOMODEL_H

@@ -15,9 +15,9 @@
 // You should have received a copy of the GNU General Public License
 // along with SIRview.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "modelframework.h"
+#include "scenariomodel.h"
 
-ModelFramework::ModelFramework(
+ScenarioModel::ScenarioModel(
     int index,
     QString modelName,
     std::list<QString> variableShortNamesList,
@@ -27,7 +27,7 @@ ModelFramework::ModelFramework(
     std::list<double> parameterMaxList,
     std::list<double> parameterInitList,
     std::list<double> initialConditionsList,
-    QWidget *parent): QWidget(parent)
+    QWidget *parent): QWidget(parent), BaseModel(index, modelName, variableShortNamesList, variableLongNamesList, parameterNamesList, parameterMinList, parameterMaxList)
 {
     colors[0] = Qt::black;
     colors[1] = Qt::red;
@@ -44,37 +44,8 @@ ModelFramework::ModelFramework(
     colors[12] = Qt::darkCyan;
     colors[13] = Qt::darkGray;
 
-    currentSectionIndex = 0;
+    currentScenarioIndex = 0;
     currentSnapshotIndex = -1;
-
-    name = modelName;
-
-    modelIndex = index;
-
-    for (std::list<QString>::iterator it = variableShortNamesList.begin(); it != variableShortNamesList.end(); ++it)
-    {
-        variableShortNames.push_back(new QLabel(*it));
-    }
-
-    for (std::list<QString>::iterator it = variableLongNamesList.begin(); it != variableLongNamesList.end(); ++it)
-    {
-        variableLongNames.push_back(new QLabel(*it));
-    }
-
-    for (std::list<QString>::iterator it = parameterNamesList.begin(); it != parameterNamesList.end(); ++it)
-    {
-        parameterNames.push_back(new QLabel(*it));
-    }
-
-    for (std::list<double>::iterator it = parameterMinList.begin(); it != parameterMinList.end(); ++it)
-    {
-        parameterMin.push_back(*it);
-    }
-
-    for (std::list<double>::iterator it = parameterMaxList.begin(); it != parameterMaxList.end(); ++it)
-    {
-        parameterMax.push_back(*it);
-    }
 
     for (std::list<double>::iterator it = parameterInitList.begin(); it != parameterInitList.end(); ++it)
     {
@@ -86,84 +57,29 @@ ModelFramework::ModelFramework(
         initialConditions.push_back(*it);
     }
 
-    dimension = static_cast<int>(variableShortNames.size());
-    numParameters = static_cast<int>(parameterNames.size());
-
     constructPlots();
 }
 
-ModelFramework::ModelFramework(const ModelFramework &mf, QWidget *parent): QWidget(parent)
+ScenarioModel::ScenarioModel(const ScenarioModel &model, QWidget *parent): QWidget(parent), BaseModel(model)
 {
-    name = mf.name;
+    parameterInit = model.parameterInit;
 
-    dimension = mf.dimension;
-    numParameters = mf.numParameters;
+    initialConditions = model.initialConditions;
 
-    for (unsigned long i = 0; i < mf.variableShortNames.size(); i++)
-    {
-        QLabel *label = new QLabel;
-        label->setText(mf.variableShortNames[i]->text());
-        variableShortNames.push_back(label);
-    }
-
-    for (unsigned long i = 0; i < mf.variableLongNames.size(); i++)
-    {
-        QLabel *label = new QLabel;
-        label->setText(mf.variableLongNames[i]->text());
-        variableLongNames.push_back(label);
-    }
-
-    for (unsigned long i = 0; i < mf.parameterNames.size(); i++)
-    {
-        QLabel *label = new QLabel;
-        label->setText(mf.parameterNames[i]->text());
-        parameterNames.push_back(label);
-    }
-
-    parameterMin = mf.parameterMin;
-    parameterMax = mf.parameterMax;
-    parameterInit = mf.parameterInit;
-
-    initialConditions = mf.initialConditions;
-
-    sections = mf.sections;
-    currentSectionIndex = mf.currentSectionIndex;
+    scenarios = model.scenarios;
+    currentScenarioIndex = model.currentScenarioIndex;
 
     for (int i = 0; i < 14; i++)
     {
-        colors[i] = mf.colors[i];
+        colors[i] = model.colors[i];
     }
 
     constructPlots();
     constructGraphs();
 }
 
-ModelFramework::~ModelFramework()
+ScenarioModel::~ScenarioModel()
 {
-    for (unsigned long i = 0; i < variableShortNames.size(); i++)
-    {
-        delete variableShortNames[i];
-        variableShortNames[i] = nullptr;
-    }
-
-    variableShortNames.clear();
-
-    for (unsigned long i = 0; i < variableLongNames.size(); i++)
-    {
-        delete variableLongNames[i];
-        variableLongNames[i] = nullptr;
-    }
-
-    variableLongNames.clear();
-
-    for (unsigned long i = 0; i < parameterNames.size(); i++)
-    {
-        delete parameterNames[i];
-        parameterNames[i] = nullptr;
-    }
-
-    parameterNames.clear();
-
     for (unsigned long i = 0; i < plots.size(); i++)
     {
         delete plots[i];
@@ -179,7 +95,7 @@ ModelFramework::~ModelFramework()
     plotsGridWidget = nullptr;
 }
 
-void ModelFramework::constructPlots()
+void ScenarioModel::constructPlots()
 {
     for (int i = 0; i < 2 * dimension; i++)
     {
@@ -230,17 +146,17 @@ void ModelFramework::constructPlots()
     allVariablesPlot->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
 }
 
-void ModelFramework::constructGraphs()
+void ScenarioModel::constructGraphs()
 {
-    int lastSectionIndex = sections.size() - 1;
+    int lastScenarioIndex = scenarios.size() - 1;
 
     // Plots
 
     for (unsigned long i = 0; i < plots.size(); i++)
     {
-        // Add graphs corresponding to all sections except for the last one
+        // Add graphs corresponding to all scenarios except for the last one
 
-        for (int j = 0; j < lastSectionIndex; j++)
+        for (int j = 0; j < lastScenarioIndex; j++)
         {
             plots[i]->addGraph();
             plots[i]->addGraph();
@@ -259,9 +175,9 @@ void ModelFramework::constructGraphs()
             plots[i]->graph(numGraphs - 1)->setPen(pen);
         }
 
-        // Last graph (last section)
+        // Last graph (last scenario)
 
-        QPen pen = QPen(colors[lastSectionIndex % 14]);
+        QPen pen = QPen(colors[lastScenarioIndex % 14]);
         pen.setStyle(Qt::SolidLine);
         pen.setWidth(3);
 
@@ -276,7 +192,7 @@ void ModelFramework::constructGraphs()
 
     // Add as many graphs to plot as dimensions of the model
 
-    for (unsigned long j = 0; j < sections.size(); j++)
+    for (unsigned long j = 0; j < scenarios.size(); j++)
     {
         QPen pen = QPen(colors[j % 14]);
         pen.setStyle(Qt::SolidLine);
@@ -295,20 +211,20 @@ void ModelFramework::constructGraphs()
     setPlotsData();
 }
 
-void ModelFramework::setPlotsData()
+void ScenarioModel::setPlotsData()
 {
-    unsigned long jmax = sections.size() - 1;
+    unsigned long jmax = scenarios.size() - 1;
 
-    // Compute left and right data for sections until last one
+    // Compute left and right data for scenarios until last one
 
     for (unsigned long j = 0; j < jmax; j++)
     {
-        sections[j].setAbscissaOrdinate(sections[j + 1].timeStart);
+        scenarios[j].setAbscissaOrdinate(scenarios[j + 1].timeStart);
     }
 
-    // Compute data for last section
+    // Compute data for last scenario
 
-    sections[jmax].setAbscissaOrdinate();
+    scenarios[jmax].setAbscissaOrdinate();
 
     // Set plots data
 
@@ -320,13 +236,13 @@ void ModelFramework::setPlotsData()
 
         for (int j = 0; j < numGraphs - 2; j += 2)
         {
-            plots[i]->graph(j)->setData(sections[k].abscissaLeft, sections[k].ordinateLeft[i % dimension], true);
-            plots[i]->graph(j + 1)->setData(sections[k].abscissaRight, sections[k].ordinateRight[i % dimension], true);
+            plots[i]->graph(j)->setData(scenarios[k].abscissaLeft, scenarios[k].ordinateLeft[i % dimension], true);
+            plots[i]->graph(j + 1)->setData(scenarios[k].abscissaRight, scenarios[k].ordinateRight[i % dimension], true);
 
             k++;
         }
 
-        plots[i]->graph(numGraphs - 1)->setData(sections[k].abscissa, sections[k].ordinate[i % dimension], true);
+        plots[i]->graph(numGraphs - 1)->setData(scenarios[k].abscissa, scenarios[k].ordinate[i % dimension], true);
 
         plots[i]->xAxis->rescale();
         plots[i]->replot();
@@ -334,28 +250,28 @@ void ModelFramework::setPlotsData()
 
     // Set data for all variables plot
 
-    int lastSectionIndex = sections.size() - 1;
+    int lastScenarioIndex = scenarios.size() - 1;
 
-    for (int i = 0; i < lastSectionIndex; i++)
+    for (int i = 0; i < lastScenarioIndex; i++)
     {
         for (int j = 0; j < dimension; j++)
         {
-            allVariablesPlot->graph(i * dimension + j)->setData(sections[i].abscissaLeft, sections[i].ordinateLeft[j], true);
+            allVariablesPlot->graph(i * dimension + j)->setData(scenarios[i].abscissaLeft, scenarios[i].ordinateLeft[j], true);
         }
     }
 
     for (int j = 0; j < dimension; j++)
     {
-        allVariablesPlot->graph(lastSectionIndex * dimension + j)->setData(sections[lastSectionIndex].abscissa, sections[lastSectionIndex].ordinate[j], true);
+        allVariablesPlot->graph(lastScenarioIndex * dimension + j)->setData(scenarios[lastScenarioIndex].abscissa, scenarios[lastScenarioIndex].ordinate[j], true);
     }
 
     allVariablesPlot->xAxis->rescale();
     allVariablesPlot->replot();
 }
 
-void ModelFramework::setGraphsOnAddSection(int sectionIndex)
+void ScenarioModel::setGraphsOnAddScenario(int scenarioIndex)
 {
-    if (sectionIndex == 0) // Adding first section
+    if (scenarioIndex == 0) // Adding first scenario
     {
         QPen pen = QPen(colors[0]);
         pen.setStyle(Qt::SolidLine);
@@ -377,11 +293,11 @@ void ModelFramework::setGraphsOnAddSection(int sectionIndex)
             allVariablesPlot->graph(i)->setPen(pen);
         }
     }
-    else // Adding subsequent section
+    else // Adding subsequent scenario
     {
         // Plots array
 
-        // Remove last graph (previous section) from plots
+        // Remove last graph (previous scenario) from plots
 
         for (unsigned long i = 0; i < plots.size(); i++)
         {
@@ -390,7 +306,7 @@ void ModelFramework::setGraphsOnAddSection(int sectionIndex)
             plots[i]->removeGraph(numGraphs - 1);
         }
 
-        // Add two graphs (left and right from previous section) to plots
+        // Add two graphs (left and right from previous scenario) to plots
 
         for (unsigned long i = 0; i < plots.size(); i++)
         {
@@ -399,7 +315,7 @@ void ModelFramework::setGraphsOnAddSection(int sectionIndex)
 
             int numGraphs = plots[i]->graphCount();
 
-            QPen pen = QPen(colors[(sectionIndex - 1) % 14]);
+            QPen pen = QPen(colors[(scenarioIndex - 1) % 14]);
             pen.setStyle(Qt::SolidLine);
             pen.setWidth(3);
 
@@ -411,11 +327,11 @@ void ModelFramework::setGraphsOnAddSection(int sectionIndex)
             plots[i]->graph(numGraphs - 1)->setPen(pen);
         }
 
-        QPen pen = QPen(colors[sectionIndex % 14]);
+        QPen pen = QPen(colors[scenarioIndex % 14]);
         pen.setStyle(Qt::SolidLine);
         pen.setWidth(3);
 
-        // Add one graph (added section) to plots
+        // Add one graph (added scenario) to plots
 
         for (unsigned long i = 0; i < plots.size(); i++)
         {
@@ -443,9 +359,9 @@ void ModelFramework::setGraphsOnAddSection(int sectionIndex)
     }
 }
 
-void ModelFramework::setGraphsOnRemoveSection(int sectionIndex)
+void ScenarioModel::setGraphsOnRemoveScenario(int scenarioIndex)
 {
-    QPen pen = QPen(colors[(sectionIndex - 1) % 14]);
+    QPen pen = QPen(colors[(scenarioIndex - 1) % 14]);
     pen.setStyle(Qt::SolidLine);
     pen.setWidth(3);
 
@@ -455,13 +371,13 @@ void ModelFramework::setGraphsOnRemoveSection(int sectionIndex)
     {
         int numGraphs = plots[i]->graphCount();
 
-        // Remove graph from last section
+        // Remove graph from last scenario
 
         plots[i]->removeGraph(numGraphs - 1);
 
-        // Remove all graphs from last section until removed section
+        // Remove all graphs from last scenario until removed scenario
 
-        for (int j = numGraphs - 2; j >= 2 * sectionIndex - 1; j--)
+        for (int j = numGraphs - 2; j >= 2 * scenarioIndex - 1; j--)
         {
             plots[i]->removeGraph(j);
         }
@@ -478,109 +394,109 @@ void ModelFramework::setGraphsOnRemoveSection(int sectionIndex)
 
     int numGraphs = allVariablesPlot->graphCount();
 
-    for (int i = numGraphs - 1; i >= dimension * sectionIndex; i--)
+    for (int i = numGraphs - 1; i >= dimension * scenarioIndex; i--)
     {
         allVariablesPlot->removeGraph(i);
     }
 }
 
-void ModelFramework::onTimeStartChanged(int sectionIndex)
+void ScenarioModel::onTimeStartChanged(int scenarioIndex)
 {
-    if (sectionIndex - 1 >= 0)
+    if (scenarioIndex - 1 >= 0)
     {
-        sections[sectionIndex - 1].timeStartMax = sections[sectionIndex].timeStart;
-        sections[sectionIndex - 1].timeEndMin = sections[sectionIndex].timeStart;
+        scenarios[scenarioIndex - 1].timeStartMax = scenarios[scenarioIndex].timeStart;
+        scenarios[scenarioIndex - 1].timeEndMin = scenarios[scenarioIndex].timeStart;
     }
 
-    if (sectionIndex + 1 < static_cast<int>(sections.size()))
+    if (scenarioIndex + 1 < static_cast<int>(scenarios.size()))
     {
-        sections[sectionIndex + 1].timeStartMin = sections[sectionIndex].timeStart;
+        scenarios[scenarioIndex + 1].timeStartMin = scenarios[scenarioIndex].timeStart;
     }
     else
     {
-        sections[sectionIndex].timeEndMin = sections[sectionIndex].timeStart;
+        scenarios[scenarioIndex].timeEndMin = scenarios[scenarioIndex].timeStart;
     }
 
 }
 
-void ModelFramework::onTimeEndChanged(int sectionIndex)
+void ScenarioModel::onTimeEndChanged(int scenarioIndex)
 {
-    if (sectionIndex + 1 < static_cast<int>(sections.size()))
+    if (scenarioIndex + 1 < static_cast<int>(scenarios.size()))
     {
-        sections[sectionIndex + 1].timeStartMax = sections[sectionIndex].timeEnd;
+        scenarios[scenarioIndex + 1].timeStartMax = scenarios[scenarioIndex].timeEnd;
     }
 
-    if (sections.size() == 1)
+    if (scenarios.size() == 1)
     {
-        sections[sectionIndex].timeStartMax = sections[sectionIndex].timeEnd;
+        scenarios[scenarioIndex].timeStartMax = scenarios[scenarioIndex].timeEnd;
     }
 
-    if (sections[sectionIndex].timeEnd >= sections[sectionIndex].timeEndMax)
+    if (scenarios[scenarioIndex].timeEnd >= scenarios[scenarioIndex].timeEndMax)
     {
-        sections[sectionIndex].timeEndMax += 10.0;
+        scenarios[scenarioIndex].timeEndMax += 10.0;
     }
 }
 
-void ModelFramework::shiftTimeRanges(int sectionIndex, double delta)
+void ScenarioModel::shiftTimeRanges(int scenarioIndex, double delta)
 {
-    for (size_t i = sectionIndex + 1; i < sections.size(); i++)
+    for (size_t i = scenarioIndex + 1; i < scenarios.size(); i++)
     {
-        sections[i].timeStart += delta;
-        sections[i].timeStartMin += delta;
+        scenarios[i].timeStart += delta;
+        scenarios[i].timeStartMin += delta;
     }
 
-    if (sections.size() == 1)
+    if (scenarios.size() == 1)
     {
-        sections[sectionIndex].timeStartMin += delta;
+        scenarios[scenarioIndex].timeStartMin += delta;
     }
 
-    int i0 = sectionIndex - 1 >= 0 ? sectionIndex - 1 : 0;
+    int i0 = scenarioIndex - 1 >= 0 ? scenarioIndex - 1 : 0;
 
-    for (size_t i = i0; i < sections.size(); i++)
+    for (size_t i = i0; i < scenarios.size(); i++)
     {
-        sections[i].timeStartMax += delta;
+        scenarios[i].timeStartMax += delta;
     }
 
-    for (size_t i = i0; i < sections.size(); i++)
+    for (size_t i = i0; i < scenarios.size(); i++)
     {
-        sections[i].timeEnd += delta;
-        sections[i].timeEndMin += delta;
-        sections[i].timeEndMax += delta;
+        scenarios[i].timeEnd += delta;
+        scenarios[i].timeEndMin += delta;
+        scenarios[i].timeEndMax += delta;
     }
 }
 
-void ModelFramework::updateTimeRangeMinMax()
+void ScenarioModel::updateTimeRangeMinMax()
 {
-    for (size_t i = 0; i < sections.size(); i++)
+    for (size_t i = 0; i < scenarios.size(); i++)
     {
         onTimeStartChanged(i);
         onTimeEndChanged(i);
     }
 }
 
-void ModelFramework::addSection()
+void ScenarioModel::addScenario()
 {
-    if (sections.empty())
+    if (scenarios.empty())
     {
-        Section section(initialConditions, parameterInit, parameterMin, parameterMax, 0.0, 0.0, 100.0, 100.0, 0.0, 110.0);
-        sections.push_back(section);
+        Scenario scenario(initialConditions, parameterInit, parameterMin, parameterMax, 0.0, 0.0, 100.0, 100.0, 0.0, 110.0);
+        scenarios.push_back(scenario);
     }
     else
     {
-        Section section = sections.back();
-        section.timeStartMin = section.timeStart;
-        section.timeStartMax = section.timeEnd;
-        sections.push_back(section);
+        Scenario scenario = scenarios.back();
+        scenario.timeStartMin = scenario.timeStart;
+        scenario.timeStartMax = scenario.timeEnd;
+        scenarios.push_back(scenario);
     }
 
-    currentSectionIndex = sections.size() - 1;
+    currentScenarioIndex = scenarios.size() - 1;
 
-    setGraphsOnAddSection(currentSectionIndex);
+    setGraphsOnAddScenario(currentScenarioIndex);
 }
 
-void ModelFramework::removeSection(int sectionIndex)
+void ScenarioModel::removeScenario(int scenarioIndex)
 {
-    sections.erase(sections.begin() + sectionIndex, sections.begin() + sections.size());
-    setGraphsOnRemoveSection(sectionIndex);
-    currentSectionIndex = sections.size() - 1;
+    scenarios.erase(scenarios.begin() + scenarioIndex, scenarios.begin() + scenarios.size());
+    setGraphsOnRemoveScenario(scenarioIndex);
+    currentScenarioIndex = scenarios.size() - 1;
 }

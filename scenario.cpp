@@ -15,54 +15,54 @@
 // You should have received a copy of the GNU General Public License
 // along with SIRview.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "section.h"
+#include "scenario.h"
 
-void Section::setTimeStart(int i, int indexMax)
+void Scenario::setTimeStart(int i, int indexMax)
 {
     timeStart = timeStartMin + (timeStartMax - timeStartMin) * i / indexMax;
 }
 
-void Section::setTimeEnd(int i, int indexMax)
+void Scenario::setTimeEnd(int i, int indexMax)
 {
     timeEnd = timeEndMin + (timeEndMax - timeEndMin) * i / indexMax;
 }
 
-void Section::setParameter(int k, int i, int indexMax)
+void Scenario::setParameter(int k, int i, int indexMax)
 {
     parameters[k] = parametersMin[k] + (parametersMax[k] - parametersMin[k]) * i / indexMax;
 }
 
-int Section::getIndexTimeStart(int indexMax)
+int Scenario::getIndexTimeStart(int indexMax)
 {
     return static_cast<int>(indexMax * (timeStart - timeStartMin) / (timeStartMax - timeStartMin));
 }
 
-int Section::getIndexTimeEnd(int indexMax)
+int Scenario::getIndexTimeEnd(int indexMax)
 {
     return static_cast<int>(indexMax * (timeEnd - timeEndMin) / (timeEndMax - timeEndMin));
 }
 
-int Section::getIndexParameter(int k, int indexMax)
+int Scenario::getIndexParameter(int k, int indexMax)
 {
     return static_cast<int>(indexMax * (parameters[k] - parametersMin[k]) / (parametersMax[k] - parametersMin[k]));
 }
 
-void Section::interpolateX0(Section section)
+void Scenario::interpolateX0(Scenario scenario)
 {
-    if (section.times.size() > 1) // Times array with at least 2 elements
+    if (scenario.times.size() > 1) // Times array with at least 2 elements
     {
         double time0, time1;
         state_type step0, step1;
 
-        for (size_t i = 1; i < section.times.size(); i++)
+        for (size_t i = 1; i < scenario.times.size(); i++)
         {
-            if (section.times[i - 1] <= timeStart && timeStart <= section.times[i])
+            if (scenario.times[i - 1] <= timeStart && timeStart <= scenario.times[i])
             {
-                time0 = section.times[i - 1];
-                time1 = section.times[i];
+                time0 = scenario.times[i - 1];
+                time1 = scenario.times[i];
 
-                step0 = section.steps[i - 1];
-                step1 = section.steps[i];
+                step0 = scenario.steps[i - 1];
+                step1 = scenario.steps[i];
 
                 break;
             }
@@ -75,11 +75,11 @@ void Section::interpolateX0(Section section)
     }
     else // Times array with only 1 element
     {
-        x0 = section.steps.back();
+        x0 = scenario.steps.back();
     }
 }
 
-void Section::setAbscissaOrdinate()
+void Scenario::setAbscissaOrdinate()
 {
     abscissa = QVector<double>(times.begin(), times.end());
 
@@ -98,7 +98,7 @@ void Section::setAbscissaOrdinate()
     }
 }
 
-void Section::setAbscissaOrdinate(double time)
+void Scenario::setAbscissaOrdinate(double time)
 {
     unsigned long index = 0;
 

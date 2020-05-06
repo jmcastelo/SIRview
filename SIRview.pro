@@ -16,19 +16,23 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    basemodel.cpp \
     main.cpp \
-    modelframework.cpp \
+    mainwidget.cpp \
     qcustomplot.cpp \
-    section.cpp \
-    widget.cpp
+    scenario.cpp \
+    scenariomodel.cpp \
+    scenariowidget.cpp
 
 HEADERS += \
+    basemodel.h \
     customvalidator.h \
-    modelframework.h \
+    mainwidget.h \
     models.h \
     qcustomplot.h \
-    section.h \
-    widget.h
+    scenario.h \
+    scenariomodel.h \
+    scenariowidget.h
 
 QMAKE_CXXFLAGS_RELEASE += -O3
 
