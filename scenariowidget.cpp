@@ -23,22 +23,11 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
 
     models.push_back(new ScenarioModel(0, "SIR", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0"}, {0.0}, {20.0}, {2.5}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
     models.push_back(new ScenarioModel(1, "SIRS", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioModel(2, "SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0, 0.0}));
+    models.push_back(new ScenarioModel(2, "SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 2.0e-7, 1.0e-7, 0.0, 1.0e-7}));
     models.push_back(new ScenarioModel(3, "SIR + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
     models.push_back(new ScenarioModel(4, "SIRS + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1", "P3"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
 
     currentModel = models[0];
-
-    // Init snapshots vector
-
-    std::list<ScenarioModel> snapshot;
-
-    snapshots.reserve(5);
-
-    for (size_t i = 0; i < models.size(); i++)
-    {
-        snapshots.push_back(snapshot);
-    }
 
     // Model selection controls
 
@@ -53,7 +42,18 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
 
     modelComboBox->setCurrentIndex(0);
 
-    // Model management controls
+    // Init snapshots vector
+
+    std::list<ScenarioModel> snapshot;
+
+    snapshots.reserve(5);
+
+    for (size_t i = 0; i < models.size(); i++)
+    {
+        snapshots.push_back(snapshot);
+    }
+
+    // Snapshot management controls
 
     QLabel *snapshotLabel = new QLabel("Snapshots");
 
@@ -120,9 +120,9 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
 
     parameterVBoxLayout = new QVBoxLayout;
 
-    // Main controls vertical layout & widget
+    // Main controls vertical layout
 
-    mainControlsVBoxLayout = new QVBoxLayout;
+    QVBoxLayout *mainControlsVBoxLayout = new QVBoxLayout;
     mainControlsVBoxLayout->addWidget(modelLabel);
     mainControlsVBoxLayout->addWidget(modelComboBox);
     mainControlsVBoxLayout->addWidget(snapshotLabel);
@@ -186,13 +186,9 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
 
     setPlotTabs();
 
-    // Main widget
+    // Set main layout
 
     setLayout(mainGridLayout);
-
-    //setWindowTitle("SIRview");
-
-    //resize(1200, 800);
 }
 
 ScenarioWidget::~ScenarioWidget()
@@ -258,8 +254,6 @@ void ScenarioWidget::constructParameterControls()
         validator->setLocale(QLocale::English);
 
         lineEdit->setValidator(validator);
-
-        currentModel->parameterNames[i];
 
         QHBoxLayout *hBoxLayout = new QHBoxLayout;
 
@@ -858,27 +852,27 @@ void ScenarioWidget::integrate(ScenarioModel *model, bool interpolation)
 
         if (model->modelIndex == 0) // SIR model
         {
-            SIR sir(scenario->parameters[0]);
+            SIR sir(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sir, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
         else if (model->modelIndex == 1) // SIRS model
         {
-            SIRS sirs(scenario->parameters[0], scenario->parameters[1]);
+            SIRS sirs(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirs, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
         else if (model->modelIndex == 2) // SIRA model
         {
-            SIRA sira(scenario->parameters[0], scenario->parameters[1]);
+            SIRA sira(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sira, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
         else if (model->modelIndex == 3) // SIR + Vital dynamics model
         {
-            SIRVitalDynamics sirVitalDynamics(scenario->parameters[0], scenario->parameters[1]);
+            SIRVitalDynamics sirVitalDynamics(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirVitalDynamics, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
         else if (model->modelIndex == 4) // SIRS + Vital dynamics model
         {
-            SIRSVitalDynamics sirsVitalDynamics(scenario->parameters[0], scenario->parameters[1], scenario->parameters[2]);
+            SIRSVitalDynamics sirsVitalDynamics(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirsVitalDynamics, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
     }

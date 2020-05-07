@@ -25,14 +25,14 @@ typedef std::vector<double> state_type;
 class SIR
 {
 public:
-    double P0;
+    std::vector<double> P;
 
-    SIR(double p0): P0(p0){}
+    SIR(std::vector<double> p): P(p){}
 
     void operator()(const state_type &x, state_type &dxdt, const double)
     {
-        dxdt[0] = -P0 * x[0] * x[1];
-        dxdt[1] = (P0 * x[0] - 1) * x[1];
+        dxdt[0] = -P[0] * x[0] * x[1];
+        dxdt[1] = (P[0] * x[0] - 1) * x[1];
         dxdt[2] = x[1];
     }
 };
@@ -40,61 +40,61 @@ public:
 class SIRVitalDynamics
 {
 public:
-    double P0, P1;
+    std::vector<double> P;
 
-    SIRVitalDynamics(double p0, double p1): P0(p0), P1(p1){}
+    SIRVitalDynamics(std::vector<double> p): P(p){}
 
     void operator()(const state_type &x, state_type &dxdt, const double)
     {
-        dxdt[0] = P1 * (1 - x[0]) - P0 * x[0] * x[1];
-        dxdt[1] = (P0 * x[0] - 1 - P1) * x[1];
-        dxdt[2] = x[1] - P1 * x[2];
+        dxdt[0] = P[1] * (1 - x[0]) - P[0] * x[0] * x[1];
+        dxdt[1] = (P[0] * x[0] - 1 - P[1]) * x[1];
+        dxdt[2] = x[1] - P[1] * x[2];
     }
 };
 
 class SIRS
 {
 public:
-    double P0, P1;
+    std::vector<double> P;
 
-    SIRS(double p0, double p1): P0(p0), P1(p1){}
+    SIRS(std::vector<double> p): P(p){}
 
     void operator()(const state_type &x, state_type &dxdt, const double)
     {
-        dxdt[0] = P1 * x[2] - P0 * x[0] * x[1];
-        dxdt[1] = (P0 * x[0] - 1) * x[1];
-        dxdt[2] = x[1] - P1 * x[2];
+        dxdt[0] = P[1] * x[2] - P[0] * x[0] * x[1];
+        dxdt[1] = (P[0] * x[0] - 1) * x[1];
+        dxdt[2] = x[1] - P[1] * x[2];
     }
 };
 
 class SIRSVitalDynamics
 {
 public:
-    double P0, P1, P2;
+    std::vector<double> P;
 
-    SIRSVitalDynamics(double p0, double p1, double p2): P0(p0), P1(p1), P2(p2){}
+    SIRSVitalDynamics(std::vector<double> p): P(p){}
 
     void operator()(const state_type &x, state_type &dxdt, const double)
     {
-        dxdt[0] = P1 * x[2] + P2 * (1 - x[0]) - P0 * x[0] * x[1];
-        dxdt[1] = (P0 * x[0] - 1 - P2) * x[1];
-        dxdt[2] = x[1] - (P1 + P2) * x[2];
+        dxdt[0] = P[1] * x[2] + P[2] * (1 - x[0]) - P[0] * x[0] * x[1];
+        dxdt[1] = (P[0] * x[0] - 1 - P[2]) * x[1];
+        dxdt[2] = x[1] - (P[1] + P[2]) * x[2];
     }
 };
 
 class SIRA
 {
 public:
-    double P0, P1;
+    std::vector<double> P;
 
-    SIRA(double p0, double p1): P0(p0), P1(p1){}
+    SIRA(std::vector<double> p): P(p){}
 
     void operator()(const state_type &x, state_type &dxdt, const double)
     {
-        dxdt[0] = -P0 * (x[1] + P1 * x[3]) * x[0];
-        dxdt[1] = (P0 * x[0] - 1) * x[1];
+        dxdt[0] = -P[0] * (x[1] + P[1] * x[3]) * x[0];
+        dxdt[1] = (P[0] * x[0] - 1) * x[1] + P[0] * P[2] * x[0] * x[3];
         dxdt[2] = x[1] + x[3];
-        dxdt[3] = (P0 * P1 * x[0] - 1) * x[3];
+        dxdt[3] = (P[0] * (P[1] - P[2]) * x[0] - 1) * x[3];
     }
 };
 

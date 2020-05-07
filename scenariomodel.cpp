@@ -80,7 +80,7 @@ ScenarioModel::ScenarioModel(const ScenarioModel &model, QWidget *parent): QWidg
 
 ScenarioModel::~ScenarioModel()
 {
-    for (unsigned long i = 0; i < plots.size(); i++)
+    for (size_t i = 0; i < plots.size(); i++)
     {
         delete plots[i];
         plots[i] = nullptr;

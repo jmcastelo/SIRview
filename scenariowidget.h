@@ -43,7 +43,7 @@ class ScenarioWidget: public QWidget
     Q_OBJECT
 
 public:
-    ScenarioWidget(QWidget *parent = nullptr);
+    explicit ScenarioWidget(QWidget *parent = nullptr);
     ~ScenarioWidget();
 
 private:
@@ -56,8 +56,6 @@ private:
     QPushButton *takeSnapshotPushButton;
     QPushButton *removeSnapshotPushButton;
     QComboBox *snapshotComboBox;
-
-    QVBoxLayout *mainControlsVBoxLayout;
 
     QPushButton *addScenarioPushButton;
     QPushButton *removeScenarioPushButton;

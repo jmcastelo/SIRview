@@ -19,6 +19,8 @@ SOURCES += \
     basemodel.cpp \
     main.cpp \
     mainwidget.cpp \
+    phasespacemodel.cpp \
+    phasespacewidget.cpp \
     qcustomplot.cpp \
     scenario.cpp \
     scenariomodel.cpp \
@@ -29,6 +31,8 @@ HEADERS += \
     customvalidator.h \
     mainwidget.h \
     models.h \
+    phasespacemodel.h \
+    phasespacewidget.h \
     qcustomplot.h \
     scenario.h \
     scenariomodel.h \
