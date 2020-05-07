@@ -4,6 +4,9 @@
 #include "scenariowidget.h"
 #include <QWidget>
 #include <QTabWidget>
+#include <QString>
+#include <QLabel>
+#include <QVBoxLayout>
 
 class MainWidget: public QWidget
 {

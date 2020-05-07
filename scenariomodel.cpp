@@ -426,7 +426,7 @@ void ScenarioModel::onTimeEndChanged(int scenarioIndex)
         scenarios[scenarioIndex + 1].timeStartMax = scenarios[scenarioIndex].timeEnd;
     }
 
-    if (scenarios.size() == 1)
+    if (scenarioIndex == static_cast<int>(scenarios.size()) - 1)
     {
         scenarios[scenarioIndex].timeStartMax = scenarios[scenarioIndex].timeEnd;
     }
