@@ -35,6 +35,8 @@ public:
     std::vector<QLabel*> variableLongNames;
     std::vector<QLabel*> parameterNames;
 
+    std::vector<QString> plotNames;
+
     std::vector<double> parameterMin;
     std::vector<double> parameterMax;
 

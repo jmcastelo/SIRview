@@ -38,6 +38,7 @@ BaseModel::BaseModel(
     for (std::list<QString>::iterator it = variableLongNamesList.begin(); it != variableLongNamesList.end(); ++it)
     {
         variableLongNames.push_back(new QLabel(*it));
+        plotNames.push_back(*it);
     }
 
     for (std::list<QString>::iterator it = parameterNamesList.begin(); it != parameterNamesList.end(); ++it)

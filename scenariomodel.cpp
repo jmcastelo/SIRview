@@ -118,16 +118,16 @@ void ScenarioModel::constructPlots()
 
     if (dimension == 3)
     {
-        plotsGridLayout->addWidget(plots[3], 0, 0);
-        plotsGridLayout->addWidget(plots[5], 0, 1);
-        plotsGridLayout->addWidget(plots[4], 1, 0, -1, -1);
+        plotsGridLayout->addWidget(plots[0], 0, 0);
+        plotsGridLayout->addWidget(plots[2], 0, 1);
+        plotsGridLayout->addWidget(plots[1], 1, 0, -1, -1);
     }
     else if (dimension == 4)
     {
-        plotsGridLayout->addWidget(plots[4], 0, 0);
-        plotsGridLayout->addWidget(plots[6], 0, 1);
-        plotsGridLayout->addWidget(plots[5], 1, 0);
-        plotsGridLayout->addWidget(plots[7], 1, 1);
+        plotsGridLayout->addWidget(plots[0], 0, 0);
+        plotsGridLayout->addWidget(plots[2], 0, 1);
+        plotsGridLayout->addWidget(plots[1], 1, 0);
+        plotsGridLayout->addWidget(plots[3], 1, 1);
     }
 
     plotsGridWidget = new QWidget;

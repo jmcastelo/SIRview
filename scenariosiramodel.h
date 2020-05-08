@@ -15,15 +15,15 @@
 // You should have received a copy of the GNU General Public License
 // along with SIRview.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef SCENARIOGENERICMODEL_H
-#define SCENARIOGENERICMODEL_H
+#ifndef SCENARIOSIRAMODEL_H
+#define SCENARIOSIRAMODEL_H
 
 #include "scenariomodel.h"
 
-class ScenarioGenericModel: public ScenarioModel
+class ScenarioSIRAModel: virtual public QWidget, public ScenarioModel
 {
 public:
-    ScenarioGenericModel(
+    ScenarioSIRAModel(
         int index,
         QString modelName,
         std::list<QString> variableShortNamesList,
@@ -34,7 +34,7 @@ public:
         std::list<double> parameterInitList,
         std::list<double> initialConditionsList,
         QWidget *parent = nullptr
-        ): ScenarioModel(
+        ): QWidget(parent), ScenarioModel(
             index,
             modelName,
             variableShortNamesList,
@@ -46,12 +46,13 @@ public:
             initialConditionsList,
             parent)
     {
+        plotNames.push_back(QString("(A - I)/(A + I)"));
         constructAdditionalPlots();
     }
 
 private:
-    void constructAdditionalPlots(){}
-    void setAdditionalPlotsData(){}
+    void constructAdditionalPlots();
+    void setAdditionalPlotsData();
 };
 
-#endif // SCENARIOGENERICMODEL_H
+#endif // SCENARIOSIRAMODEL_H

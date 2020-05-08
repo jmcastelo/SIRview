@@ -25,7 +25,7 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
     models.push_back(new ScenarioGenericModel(1, "SIRS", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
     models.push_back(new ScenarioGenericModel(2, "SEIR", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
     models.push_back(new ScenarioGenericModel(3, "SEIRS", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioGenericModel(4, "SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 2.0e-7, 1.0e-7, 0.0, 1.0e-7}));
+    models.push_back(new ScenarioSIRAModel(4, "SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 2.0e-7, 1.0e-7, 0.0, 1.0e-7}));
     models.push_back(new ScenarioGenericModel(5, "SIR + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
     models.push_back(new ScenarioGenericModel(6, "SIRS + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
     models.push_back(new ScenarioGenericModel(7, "SEIR + Vital dynamics", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
@@ -49,8 +49,6 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
     // Init snapshots vector
 
     std::list<Snapshot*> snapshotList;
-
-    snapshots.reserve(5);
 
     for (size_t i = 0; i < models.size(); i++)
     {
@@ -360,9 +358,9 @@ void ScenarioWidget::setPlotTabs()
     plotsTabWidget->addTab(currentModel->plotsGridWidget, "All");
     plotsTabWidget->addTab(currentModel->allVariablesPlot, "Joint");
 
-    for (int i = 0; i < currentModel->dimension; i++)
+    for (size_t i = currentModel->dimension; i < currentModel->plots.size(); i++)
     {
-        plotsTabWidget->addTab(currentModel->plots[i], currentModel->variableLongNames[i]->text());
+        plotsTabWidget->addTab(currentModel->plots[i], currentModel->plotNames[i - currentModel->dimension]);
     }
 }
 
@@ -724,7 +722,7 @@ void ScenarioWidget::selectSnapshot(int snapshotIndex)
 {
     updateSnapshotTab(snapshotIndex);
 
-    int snapshotTabIndex = 2 + currentModel->dimension;
+    int snapshotTabIndex = plotsTabWidget->count() - 1;
 
     plotsTabWidget->setCurrentIndex(snapshotTabIndex);
 
@@ -734,7 +732,7 @@ void ScenarioWidget::selectSnapshot(int snapshotIndex)
 void ScenarioWidget::updateSnapshotTab(int snapshotIndex)
 {
     int modelIndex = modelComboBox->currentIndex();
-    int snapshotTabIndex = 2 + currentModel->dimension;
+    int snapshotTabIndex = plotsTabWidget->count() - 1;
     int plotsTabWidgetIndex = plotsTabWidget->currentIndex();
 
     if (snapshots[modelIndex].size() > 1)
@@ -751,7 +749,7 @@ void ScenarioWidget::updateSnapshotTab(int snapshotIndex)
 void ScenarioWidget::removeSnapshot()
 {
     int modelIndex = modelComboBox->currentIndex();
-    int snapshotTabIndex = 2 + currentModel->dimension;
+    int snapshotTabIndex = plotsTabWidget->count() - 1;
     int plotsTabWidgetIndex = plotsTabWidget->currentIndex();
     int snapshotIndex = snapshotComboBox->currentIndex();
 
@@ -803,7 +801,7 @@ void ScenarioWidget::updateSnapshotWidgets(int modelIndex)
 
     if (snapshots[modelIndex].size() > 0)
     {
-        int snapshotIndex = models[modelIndex]->currentSnapshotIndex;
+        int snapshotIndex = currentModel->currentSnapshotIndex;
 
         snapshotComboBox->setCurrentIndex(snapshotIndex);
 
@@ -813,7 +811,7 @@ void ScenarioWidget::updateSnapshotWidgets(int modelIndex)
     }
     else
     {
-        int snapshotTabIndex = 2 + models[modelIndex]->dimension;
+        int snapshotTabIndex = 2 + currentModel->plots.size() - models[modelIndex]->dimension;
 
         QWidget *widget = plotsTabWidget->widget(snapshotTabIndex);
 
@@ -864,12 +862,12 @@ void ScenarioWidget::integrate(ScenarioModel *model, bool interpolation)
             SIRS sirs(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirs, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
-        else if (model->modelIndex == 2) // SEIR
+        else if (model->modelIndex == 2) // SEIR model
         {
             SEIR seir(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), seir, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
-        else if (model->modelIndex == 3) // SEIRS
+        else if (model->modelIndex == 3) // SEIRS model
         {
             SEIRS seirs(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), seirs, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));

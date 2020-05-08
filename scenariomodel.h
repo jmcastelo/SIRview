@@ -29,7 +29,7 @@
 #include <QWidget>
 #include <QPen>
 
-class ScenarioModel: public QWidget, public BaseModel
+class ScenarioModel: virtual public QWidget, public BaseModel
 {
     Q_OBJECT
 
@@ -37,8 +37,6 @@ public:
     std::vector<double> parameterInit;
 
     std::vector<double> initialConditions;
-
-    int numBasicPlots;
 
     std::vector<QCustomPlot*> plots;
     QCustomPlot *allVariablesPlot;

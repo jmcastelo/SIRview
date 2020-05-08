@@ -24,6 +24,7 @@ SOURCES += \
     qcustomplot.cpp \
     scenario.cpp \
     scenariomodel.cpp \
+    scenariosiramodel.cpp \
     scenariowidget.cpp \
     snapshot.cpp
 
@@ -38,6 +39,7 @@ HEADERS += \
     scenario.h \
     scenariogenericmodel.h \
     scenariomodel.h \
+    scenariosiramodel.h \
     scenariowidget.h \
     snapshot.h
 

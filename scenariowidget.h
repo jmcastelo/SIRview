@@ -20,6 +20,7 @@
 
 #include "models.h"
 #include "scenariogenericmodel.h"
+#include "scenariosiramodel.h"
 #include "snapshot.h"
 #include "customvalidator.h"
 #include <vector>
