@@ -23,9 +23,13 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
 
     models.push_back(new ScenarioModel(0, "SIR", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0"}, {0.0}, {20.0}, {2.5}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
     models.push_back(new ScenarioModel(1, "SIRS", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioModel(2, "SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 2.0e-7, 1.0e-7, 0.0, 1.0e-7}));
-    models.push_back(new ScenarioModel(3, "SIR + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioModel(4, "SIRS + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1", "P3"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioModel(2, "SEIR", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioModel(3, "SEIRS", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioModel(4, "SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 2.0e-7, 1.0e-7, 0.0, 1.0e-7}));
+    models.push_back(new ScenarioModel(5, "SIR + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioModel(6, "SIRS + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioModel(7, "SEIR + Vital dynamics", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioModel(8, "SEIRS + Vital dynamics", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2", "P3"}, {0.0, 0.0, 0.0, 0.0}, {20.0, 5.0, 5.0, 5.0}, {2.5, 0.1, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
 
     currentModel = models[0];
 
@@ -473,7 +477,7 @@ void ScenarioWidget::updateTimeStartControls()
 {
     int scenarioIndex = currentModel->currentScenarioIndex;
 
-    timeStartLineEdit->setText(QString("%1").arg(currentModel->scenarios[scenarioIndex].timeStart));
+    timeStartLineEdit->setText(QString::number(currentModel->scenarios[scenarioIndex].timeStart));
 
     bool startSliderState = timeStartSlider->blockSignals(true);
 
@@ -487,7 +491,7 @@ void ScenarioWidget::updateTimeEndControls()
 {
     int scenarioIndex = currentModel->currentScenarioIndex;
 
-    timeEndLineEdit->setText(QString("%1").arg(currentModel->scenarios[scenarioIndex].timeEnd));
+    timeEndLineEdit->setText(QString::number(currentModel->scenarios[scenarioIndex].timeEnd));
 
     bool endSliderState = timeEndSlider->blockSignals(true);
 
@@ -514,7 +518,7 @@ void ScenarioWidget::updateParameterControls()
 
     for (int i = 0; i < currentModel->numParameters; i++)
     {
-        parameterLineEdit[i]->setText(QString("%1").arg(currentModel->scenarios[scenarioIndex].parameters[i]));
+        parameterLineEdit[i]->setText(QString::number(currentModel->scenarios[scenarioIndex].parameters[i]));
     }
 
     for (int i = 0; i < currentModel->numParameters; i++)
@@ -591,7 +595,7 @@ void ScenarioWidget::onTimeStartSliderValueChanged(int value)
         currentModel->onTimeStartChanged(scenarioIndex);
     }
 
-    timeStartLineEdit->setText(QString("%1").arg(currentModel->scenarios[scenarioIndex].timeStart));
+    timeStartLineEdit->setText(QString::number(currentModel->scenarios[scenarioIndex].timeStart));
 
     updateValidators();
 
@@ -605,7 +609,7 @@ void ScenarioWidget::onTimeEndSliderValueChanged(int value)
     currentModel->scenarios[scenarioIndex].setTimeEnd(value, timeEndSlider->maximum());
     currentModel->onTimeEndChanged(scenarioIndex);
 
-    timeEndLineEdit->setText(QString("%1").arg(currentModel->scenarios[scenarioIndex].timeEnd));
+    timeEndLineEdit->setText(QString::number(currentModel->scenarios[scenarioIndex].timeEnd));
 
     if (value == timeEndSlider->maximum())
     {
@@ -643,7 +647,7 @@ void ScenarioWidget::onParameterSliderValueChanged(int index, int value)
 
     currentModel->scenarios[scenarioIndex].setParameter(index, value, parameterSlider[index]->maximum());
 
-    parameterLineEdit[index]->setText(QString("%1").arg(currentModel->scenarios[scenarioIndex].parameters[index]));
+    parameterLineEdit[index]->setText(QString::number(currentModel->scenarios[scenarioIndex].parameters[index]));
 
     integrate(currentModel, false);
 }
@@ -663,7 +667,7 @@ void ScenarioWidget::updateInitialConditionsControls()
 
     for (int i = 0; i < currentModel->dimension; i++)
     {
-        initialConditionsLineEdit[i]->setText(QString("%1").arg(currentModel->scenarios[scenarioIndex].x0[i]));
+        initialConditionsLineEdit[i]->setText(QString::number(currentModel->scenarios[scenarioIndex].x0[i]));
     }
 
     updateSumInitialConditionsLabel();
@@ -692,7 +696,7 @@ void ScenarioWidget::updateSumInitialConditionsLabel()
         sum += currentModel->scenarios[scenarioIndex].x0[i];
     }
 
-    text.append(QString("%1").arg(sum));
+    text.append(QString::number(sum));
 
     sumInitialConditionsLabel->setText(text);
     sumInitialConditionsLabel->repaint();
@@ -860,20 +864,40 @@ void ScenarioWidget::integrate(ScenarioModel *model, bool interpolation)
             SIRS sirs(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirs, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
-        else if (model->modelIndex == 2) // SIRA model
+        else if (model->modelIndex == 2) // SEIR
+        {
+            SEIR seir(scenario->parameters);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), seir, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
+        }
+        else if (model->modelIndex == 3) // SEIRS
+        {
+            SEIRS seirs(scenario->parameters);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), seirs, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
+        }
+        else if (model->modelIndex == 4) // SIRA model
         {
             SIRA sira(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sira, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
-        else if (model->modelIndex == 3) // SIR + Vital dynamics model
+        else if (model->modelIndex == 5) // SIR + Vital dynamics model
         {
             SIRVitalDynamics sirVitalDynamics(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirVitalDynamics, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
-        else if (model->modelIndex == 4) // SIRS + Vital dynamics model
+        else if (model->modelIndex == 6) // SIRS + Vital dynamics model
         {
             SIRSVitalDynamics sirsVitalDynamics(scenario->parameters);
             integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), sirsVitalDynamics, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
+        }
+        else if (model->modelIndex == 7) // SEIR + Vital dynamics model
+        {
+            SEIRVitalDynamics seirVitalDynamics(scenario->parameters);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), seirVitalDynamics, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
+        }
+        else if (model->modelIndex == 8) // SEIRS + Vital dynamics model
+        {
+            SEIRSVitalDynamics seirsVitalDynamics(scenario->parameters);
+            integrate_adaptive(make_controlled<error_stepper_type>(1.0e-10, 1.0e-6), seirsVitalDynamics, scenario->x, scenario->timeStart, scenario->timeEnd, 0.01, push_back_state_and_time(scenario->steps, scenario->times));
         }
     }
 

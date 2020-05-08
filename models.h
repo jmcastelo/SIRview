@@ -98,6 +98,70 @@ public:
     }
 };
 
+class SEIR
+{
+public:
+    std::vector<double> P;
+
+    SEIR(std::vector<double> p): P(p){}
+
+    void operator()(const state_type &x, state_type &dxdt, const double)
+    {
+        dxdt[0] = -P[0] * x[0] * x[2];
+        dxdt[1] = P[0] * x[0] * x[2] - P[1] * x[1];
+        dxdt[2] = P[1] * x[1] - x[2];
+        dxdt[3] = x[2];
+    }
+};
+
+class SEIRVitalDynamics
+{
+public:
+    std::vector<double> P;
+
+    SEIRVitalDynamics(std::vector<double> p): P(p){}
+
+    void operator()(const state_type &x, state_type &dxdt, const double)
+    {
+        dxdt[0] = P[2] * (1 - x[0]) - P[0] * x[0] * x[2];
+        dxdt[1] = P[0] * x[0] * x[2] - (P[1] + P[2]) * x[1];
+        dxdt[2] = P[1] * x[1] - (1 + P[2]) * x[2];
+        dxdt[3] = x[2] - P[2] * x[3];
+    }
+};
+
+class SEIRS
+{
+public:
+    std::vector<double> P;
+
+    SEIRS(std::vector<double> p): P(p){}
+
+    void operator()(const state_type &x, state_type &dxdt, const double)
+    {
+        dxdt[0] = -P[0] * x[0] * x[2] + P[2] * x[3];
+        dxdt[1] = P[0] * x[0] * x[2] - P[1] * x[1];
+        dxdt[2] = P[1] * x[1] - x[2];
+        dxdt[3] = x[2] - P[2] * x[3];
+    }
+};
+
+class SEIRSVitalDynamics
+{
+public:
+    std::vector<double> P;
+
+    SEIRSVitalDynamics(std::vector<double> p): P(p){}
+
+    void operator()(const state_type &x, state_type &dxdt, const double)
+    {
+        dxdt[0] = P[3] * (1.0 - x[0]) - P[0] * x[0] * x[2] + P[2] * x[3];
+        dxdt[1] = P[0] * x[0] * x[2] - (P[1] + P[3]) * x[1];
+        dxdt[2] = P[1] * x[1] - (1.0 + P[3]) * x[2];
+        dxdt[3] = x[2] - (P[2] + P[3]) * x[3];
+    }
+};
+
 struct push_back_state_and_time
 {
     std::vector<state_type> &states;

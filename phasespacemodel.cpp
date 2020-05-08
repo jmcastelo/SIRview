@@ -101,9 +101,19 @@ void PhaseSpaceModel::updateInitialConditions(int dim)
     {
         double x = ix / (dim - 1.0);
 
+        if (ix == 0)
+        {
+            x += 1.0e-7;
+        }
+
         for (int iy = 0; iy < dim - ix; iy++)
         {
             double y = iy / (dim - 1.0);
+
+            if (iy == 0)
+            {
+                y += 1.0e-7;
+            }
 
             for (int k = 0; k < dimension; k++)
             {
