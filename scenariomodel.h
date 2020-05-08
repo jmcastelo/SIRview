@@ -38,6 +38,8 @@ public:
 
     std::vector<double> initialConditions;
 
+    int numBasicPlots;
+
     std::vector<QCustomPlot*> plots;
     QCustomPlot *allVariablesPlot;
     QWidget *plotsGridWidget;
@@ -83,6 +85,9 @@ private:
 
     void constructPlots();
     void constructGraphs();
+
+    virtual void constructAdditionalPlots() = 0;
+    virtual void setAdditionalPlotsData() = 0;
 };
 
 #endif // SCENARIOMODEL_H

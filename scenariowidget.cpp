@@ -21,15 +21,15 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
 {
     // Models
 
-    models.push_back(new ScenarioModel(0, "SIR", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0"}, {0.0}, {20.0}, {2.5}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioModel(1, "SIRS", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioModel(2, "SEIR", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioModel(3, "SEIRS", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioModel(4, "SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 2.0e-7, 1.0e-7, 0.0, 1.0e-7}));
-    models.push_back(new ScenarioModel(5, "SIR + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioModel(6, "SIRS + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioModel(7, "SEIR + Vital dynamics", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
-    models.push_back(new ScenarioModel(8, "SEIRS + Vital dynamics", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2", "P3"}, {0.0, 0.0, 0.0, 0.0}, {20.0, 5.0, 5.0, 5.0}, {2.5, 0.1, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioGenericModel(0, "SIR", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0"}, {0.0}, {20.0}, {2.5}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioGenericModel(1, "SIRS", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioGenericModel(2, "SEIR", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioGenericModel(3, "SEIRS", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioGenericModel(4, "SIRA", {"S", "I", "R", "A"}, {"Susceptible", "Infected", "Recovered", "Asymptomatic"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 2.0e-7, 1.0e-7, 0.0, 1.0e-7}));
+    models.push_back(new ScenarioGenericModel(5, "SIR + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1"}, {0.0, 0.0}, {20.0, 5.0}, {2.5, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioGenericModel(6, "SIRS + Vital dynamics", {"S", "I", "R"}, {"Susceptible", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioGenericModel(7, "SEIR + Vital dynamics", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2"}, {0.0, 0.0, 0.0}, {20.0, 5.0, 5.0}, {2.5, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
+    models.push_back(new ScenarioGenericModel(8, "SEIRS + Vital dynamics", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2", "P3"}, {0.0, 0.0, 0.0, 0.0}, {20.0, 5.0, 5.0, 5.0}, {2.5, 0.1, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
 
     currentModel = models[0];
 
@@ -48,13 +48,13 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
 
     // Init snapshots vector
 
-    std::list<ScenarioModel> snapshot;
+    std::list<Snapshot*> snapshotList;
 
     snapshots.reserve(5);
 
     for (size_t i = 0; i < models.size(); i++)
     {
-        snapshots.push_back(snapshot);
+        snapshots.push_back(snapshotList);
     }
 
     // Snapshot management controls
@@ -706,7 +706,7 @@ void ScenarioWidget::takeSnapshot()
 {
     int modelIndex = modelComboBox->currentIndex();
 
-    snapshots[modelIndex].push_back(*models[modelIndex]);
+    snapshots[modelIndex].push_back(new Snapshot(models[modelIndex]));
 
     int snapshotIndex = snapshots[modelIndex].size() - 1;
 
@@ -743,7 +743,7 @@ void ScenarioWidget::updateSnapshotTab(int snapshotIndex)
     }
 
     auto it = std::next(snapshots[modelIndex].begin(), snapshotIndex);
-    plotsTabWidget->addTab((*it).plotsGridWidget, "Snapshot");
+    plotsTabWidget->addTab((*it)->plotsGridWidget, "Snapshot");
 
     plotsTabWidget->setCurrentIndex(plotsTabWidgetIndex);
 }
@@ -757,7 +757,7 @@ void ScenarioWidget::removeSnapshot()
 
     plotsTabWidget->removeTab(snapshotTabIndex);
 
-    std::list<ScenarioModel>::iterator it = snapshots[modelIndex].begin();
+    std::list<Snapshot*>::iterator it = snapshots[modelIndex].begin();
     std::advance(it, snapshotIndex);
     snapshots[modelIndex].erase(it);
 
@@ -771,7 +771,7 @@ void ScenarioWidget::removeSnapshot()
     if (snapshots[modelIndex].size() > 0)
     {
         auto it = std::next(snapshots[modelIndex].begin(), snapshotComboBox->currentIndex());
-        plotsTabWidget->addTab((*it).plotsGridWidget, "Snapshot");
+        plotsTabWidget->addTab((*it)->plotsGridWidget, "Snapshot");
 
         plotsTabWidget->setCurrentIndex(plotsTabWidgetIndex);
     }

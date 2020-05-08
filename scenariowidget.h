@@ -19,7 +19,8 @@
 #define SCENARIOWIDGET_H
 
 #include "models.h"
-#include "scenariomodel.h"
+#include "scenariogenericmodel.h"
+#include "snapshot.h"
 #include "customvalidator.h"
 #include <vector>
 #include <list>
@@ -49,7 +50,7 @@ public:
 private:
     ScenarioModel *currentModel;
     std::vector<ScenarioModel*> models;
-    std::vector<std::list<ScenarioModel>> snapshots;
+    std::vector<std::list<Snapshot*>> snapshots;
 
     QComboBox *modelComboBox;
 

@@ -75,6 +75,7 @@ ScenarioModel::ScenarioModel(const ScenarioModel &model, QWidget *parent): QWidg
     }
 
     constructPlots();
+    //this->constructAdditionalPlots();
     constructGraphs();
 }
 
@@ -152,7 +153,7 @@ void ScenarioModel::constructGraphs()
 
     // Plots
 
-    for (unsigned long i = 0; i < plots.size(); i++)
+    for (size_t i = 0; i < plots.size(); i++)
     {
         // Add graphs corresponding to all scenarios except for the last one
 
@@ -192,7 +193,7 @@ void ScenarioModel::constructGraphs()
 
     // Add as many graphs to plot as dimensions of the model
 
-    for (unsigned long j = 0; j < scenarios.size(); j++)
+    for (size_t j = 0; j < scenarios.size(); j++)
     {
         QPen pen = QPen(colors[j % 14]);
         pen.setStyle(Qt::SolidLine);
@@ -213,11 +214,11 @@ void ScenarioModel::constructGraphs()
 
 void ScenarioModel::setPlotsData()
 {
-    unsigned long jmax = scenarios.size() - 1;
+    int jmax = scenarios.size() - 1;
 
     // Compute left and right data for scenarios until last one
 
-    for (unsigned long j = 0; j < jmax; j++)
+    for (int j = 0; j < jmax; j++)
     {
         scenarios[j].setAbscissaOrdinate(scenarios[j + 1].timeStart);
     }
@@ -228,7 +229,7 @@ void ScenarioModel::setPlotsData()
 
     // Set plots data
 
-    for (unsigned long i = 0; i < plots.size(); i++)
+    for (int i = 0; i < 2 * dimension; i++)
     {
         int numGraphs = plots[i]->graphCount();
 
@@ -267,6 +268,8 @@ void ScenarioModel::setPlotsData()
 
     allVariablesPlot->xAxis->rescale();
     allVariablesPlot->replot();
+
+    this->setAdditionalPlotsData();
 }
 
 void ScenarioModel::setGraphsOnAddScenario(int scenarioIndex)
@@ -279,7 +282,7 @@ void ScenarioModel::setGraphsOnAddScenario(int scenarioIndex)
 
         // Plots array: add one graph per plot
 
-        for (unsigned long i = 0; i < plots.size(); i++)
+        for (size_t i = 0; i < plots.size(); i++)
         {
             plots[i]->addGraph();
             plots[i]->graph(0)->setPen(pen);
@@ -299,7 +302,7 @@ void ScenarioModel::setGraphsOnAddScenario(int scenarioIndex)
 
         // Remove last graph (previous scenario) from plots
 
-        for (unsigned long i = 0; i < plots.size(); i++)
+        for (size_t i = 0; i < plots.size(); i++)
         {
             int numGraphs = plots[i]->graphCount();
 
@@ -308,7 +311,7 @@ void ScenarioModel::setGraphsOnAddScenario(int scenarioIndex)
 
         // Add two graphs (left and right from previous scenario) to plots
 
-        for (unsigned long i = 0; i < plots.size(); i++)
+        for (size_t i = 0; i < plots.size(); i++)
         {
             plots[i]->addGraph();
             plots[i]->addGraph();
@@ -333,7 +336,7 @@ void ScenarioModel::setGraphsOnAddScenario(int scenarioIndex)
 
         // Add one graph (added scenario) to plots
 
-        for (unsigned long i = 0; i < plots.size(); i++)
+        for (size_t i = 0; i < plots.size(); i++)
         {
             plots[i]->addGraph();
 
@@ -367,7 +370,7 @@ void ScenarioModel::setGraphsOnRemoveScenario(int scenarioIndex)
 
     // Plots array
 
-    for (unsigned long i = 0; i < plots.size(); i++)
+    for (size_t i = 0; i < plots.size(); i++)
     {
         int numGraphs = plots[i]->graphCount();
 

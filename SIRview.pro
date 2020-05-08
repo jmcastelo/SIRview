@@ -24,7 +24,8 @@ SOURCES += \
     qcustomplot.cpp \
     scenario.cpp \
     scenariomodel.cpp \
-    scenariowidget.cpp
+    scenariowidget.cpp \
+    snapshot.cpp
 
 HEADERS += \
     basemodel.h \
@@ -35,8 +36,10 @@ HEADERS += \
     phasespacewidget.h \
     qcustomplot.h \
     scenario.h \
+    scenariogenericmodel.h \
     scenariomodel.h \
-    scenariowidget.h
+    scenariowidget.h \
+    snapshot.h
 
 QMAKE_CXXFLAGS_RELEASE += -O3
 
