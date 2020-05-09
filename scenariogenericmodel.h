@@ -47,6 +47,7 @@ public:
             parent)
     {
         constructAdditionalPlots();
+        connectPlots();
     }
 
 private:

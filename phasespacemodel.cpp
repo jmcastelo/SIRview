@@ -56,11 +56,19 @@ PhaseSpaceModel::PhaseSpaceModel(
     plot->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
     plot->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
 
+    imgWidth = 800;
+    imgHeight = 800;
+
+    plot->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(plot, &QCustomPlot::customContextMenuRequested, this, &PhaseSpaceModel::contextMenuRequest);
+
     updateInitialConditions(icGridDimension);
 }
 
 PhaseSpaceModel::~PhaseSpaceModel()
 {
+    plot->disconnect();
+
     plot->clearPlottables();
 
     delete plot;
@@ -235,4 +243,65 @@ void PhaseSpaceModel::setCurvesData()
     }
 
     plot->replot();
+}
+
+void PhaseSpaceModel::contextMenuRequest(QPoint pos)
+{
+    QMenu *menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    menu->addAction("Save plot as PNG", [=](){ savePlot(0, pos); });
+    menu->addAction("Save plot as JPG", [=](){ savePlot(1, pos); });
+
+    menu->popup(plot->mapToGlobal(pos));
+}
+
+void PhaseSpaceModel::savePlot(int format, QPoint pos)
+{
+    QLabel *widthLabel = new QLabel("Width (px)");
+
+    QSpinBox *widthSpinBox = new QSpinBox;
+    widthSpinBox->setRange(1, 4096);
+    widthSpinBox->setValue(imgWidth);
+
+    QLabel *heightLabel = new QLabel("Height (px)");
+
+    QSpinBox *heightSpinBox = new QSpinBox;
+    heightSpinBox->setRange(1, 2160);
+    heightSpinBox->setValue(imgHeight);
+
+    QPushButton *defaultButton = new QPushButton("Accept");
+
+    QVBoxLayout *dialogVBoxLayout = new QVBoxLayout;
+    dialogVBoxLayout->addWidget(widthLabel);
+    dialogVBoxLayout->addWidget(widthSpinBox);
+    dialogVBoxLayout->addWidget(heightLabel);
+    dialogVBoxLayout->addWidget(heightSpinBox);
+    dialogVBoxLayout->addWidget(defaultButton);
+
+    QDialog *sizeDialog = new QDialog;
+    sizeDialog->setAttribute(Qt::WA_DeleteOnClose);
+    sizeDialog->setLayout(dialogVBoxLayout);
+
+    connect(widthSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), [&](int value) { imgWidth = value; });
+    connect(heightSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), [&](int value) { imgHeight = value; });
+    connect(defaultButton, &QPushButton::clicked, [&](){
+        widthSpinBox->disconnect();
+        heightSpinBox->disconnect();
+        sizeDialog->done(1);
+    });
+
+    sizeDialog->move(plot->mapToGlobal(pos));
+    sizeDialog->exec();
+
+    if (format == 0)
+    {
+        QString fileName = QFileDialog::getSaveFileName(this, "Save plot", "", tr("Images (*.png)"));
+        if (!fileName.isEmpty()) plot->savePng(fileName, imgWidth, imgHeight);
+    }
+    else if (format == 1)
+    {
+        QString fileName = QFileDialog::getSaveFileName(this, "Save plot", "", tr("Images (*.jpg)"));
+        if (!fileName.isEmpty()) plot->saveJpg(fileName, imgWidth, imgHeight);
+    }
 }

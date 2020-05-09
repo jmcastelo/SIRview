@@ -48,6 +48,7 @@ public:
     {
         plotNames.push_back(QString("(A - I)/(A + I)"));
         constructAdditionalPlots();
+        connectPlots();
     }
 
 private:

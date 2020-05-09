@@ -44,6 +44,9 @@ ScenarioModel::ScenarioModel(
     colors[12] = Qt::darkCyan;
     colors[13] = Qt::darkGray;
 
+    imgWidth = 800;
+    imgHeight = 600;
+
     currentScenarioIndex = 0;
     currentSnapshotIndex = -1;
 
@@ -58,6 +61,7 @@ ScenarioModel::ScenarioModel(
     }
 
     constructPlots();
+    connectPlots();
 }
 
 ScenarioModel::ScenarioModel(const ScenarioModel &model, QWidget *parent): QWidget(parent), BaseModel(model)
@@ -75,7 +79,6 @@ ScenarioModel::ScenarioModel(const ScenarioModel &model, QWidget *parent): QWidg
     }
 
     constructPlots();
-    //this->constructAdditionalPlots();
     constructGraphs();
 }
 
@@ -83,12 +86,14 @@ ScenarioModel::~ScenarioModel()
 {
     for (size_t i = 0; i < plots.size(); i++)
     {
+        plots[i]->disconnect();
         delete plots[i];
         plots[i] = nullptr;
     }
 
     plots.clear();
 
+    allVariablesPlot->disconnect();
     delete allVariablesPlot;
     allVariablesPlot = nullptr;
 
@@ -145,6 +150,110 @@ void ScenarioModel::constructPlots()
     allVariablesPlot->axisRect()->setupFullAxesBox(true);
     allVariablesPlot->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
     allVariablesPlot->axisRect()->setRangeDrag(Qt::Vertical | Qt::Horizontal);
+}
+
+void ScenarioModel::connectPlots()
+{
+    for (size_t i = 0; i < plots.size(); i++)
+    {
+        plots[i]->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(plots[i], &QCustomPlot::customContextMenuRequested, [=](QPoint pos){ contextMenuRequest(i, pos); });
+    }
+
+    allVariablesPlot->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(allVariablesPlot, &QCustomPlot::customContextMenuRequested, [=](QPoint pos){ contextMenuRequest(-1, pos);  });
+}
+
+void ScenarioModel::contextMenuRequest(int plotIndex, QPoint pos)
+{
+    QMenu *menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    menu->addAction("Save plot as PNG", [=](){ savePlot(plotIndex, 0, pos); });
+    menu->addAction("Save plot as JPG", [=](){ savePlot(plotIndex, 1, pos); });
+
+    if (plotIndex == -1)
+    {
+        menu->popup(allVariablesPlot->mapToGlobal(pos));
+    }
+    else
+    {
+        menu->popup(plots[plotIndex]->mapToGlobal(pos));
+    }
+}
+
+void ScenarioModel::savePlot(int plotIndex, int format, QPoint pos)
+{
+    QLabel *widthLabel = new QLabel("Width (px)");
+
+    QSpinBox *widthSpinBox = new QSpinBox;
+    widthSpinBox->setRange(1, 4096);
+    widthSpinBox->setValue(imgWidth);
+
+    QLabel *heightLabel = new QLabel("Height (px)");
+
+    QSpinBox *heightSpinBox = new QSpinBox;
+    heightSpinBox->setRange(1, 2160);
+    heightSpinBox->setValue(imgHeight);
+
+    QPushButton *defaultButton = new QPushButton("Accept");
+
+    QVBoxLayout *dialogVBoxLayout = new QVBoxLayout;
+    dialogVBoxLayout->addWidget(widthLabel);
+    dialogVBoxLayout->addWidget(widthSpinBox);
+    dialogVBoxLayout->addWidget(heightLabel);
+    dialogVBoxLayout->addWidget(heightSpinBox);
+    dialogVBoxLayout->addWidget(defaultButton);
+
+    QDialog *sizeDialog = new QDialog(this);
+    sizeDialog->setAttribute(Qt::WA_DeleteOnClose);
+    sizeDialog->setLayout(dialogVBoxLayout);
+
+    connect(widthSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), [&](int value) { imgWidth = value; });
+    connect(heightSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), [&](int value) { imgHeight = value; });
+    connect(defaultButton, &QPushButton::clicked, [&](){
+        widthSpinBox->disconnect();
+        heightSpinBox->disconnect();
+        sizeDialog->done(1);
+    });
+
+    if (plotIndex == -1)
+    {
+        sizeDialog->move(allVariablesPlot->mapToGlobal(pos));
+    }
+    else
+    {
+        sizeDialog->move(plots[plotIndex]->mapToGlobal(pos));
+    }
+
+    sizeDialog->exec();
+
+    if (format == 0)
+    {
+        QString fileName = QFileDialog::getSaveFileName(this, "Save plot", "", tr("Images (*.png)"));
+
+        if (plotIndex == -1)
+        {
+            if (!fileName.isEmpty()) allVariablesPlot->savePng(fileName, imgWidth, imgHeight);
+        }
+        else
+        {
+            if (!fileName.isEmpty()) plots[plotIndex]->savePng(fileName, imgWidth, imgHeight);
+        }
+    }
+    else if (format == 1)
+    {
+        QString fileName = QFileDialog::getSaveFileName(this, "Save plot", "", tr("Images (*.jpg)"));
+
+        if (plotIndex == -1)
+        {
+            if (!fileName.isEmpty()) allVariablesPlot->saveJpg(fileName, imgWidth, imgHeight);
+        }
+        else
+        {
+            if (!fileName.isEmpty()) plots[plotIndex]->saveJpg(fileName, imgWidth, imgHeight);
+        }
+    }
 }
 
 void ScenarioModel::constructGraphs()

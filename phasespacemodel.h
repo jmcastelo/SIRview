@@ -25,6 +25,14 @@
 #include <list>
 #include <vector>
 #include <QVector>
+#include <QPoint>
+#include <QMenu>
+#include <QLabel>
+#include <QSpinBox>
+#include <QPushButton>
+#include <QDialog>
+#include <QString>
+#include <QFileDialog>
 
 typedef std::vector<double> state_type;
 
@@ -76,9 +84,15 @@ private:
 
     std::vector<QCPCurve*> curves;
 
+    int imgWidth;
+    int imgHeight;
+
     void integrate();
     void updateCurves();
     void setCurvesData();
+
+    void contextMenuRequest(QPoint pos);
+    void savePlot(int format, QPoint pos);
 };
 
 #endif // PHASESPACEMODEL_H

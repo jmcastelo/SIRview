@@ -28,6 +28,12 @@
 #include <QGridLayout>
 #include <QWidget>
 #include <QPen>
+#include <QPoint>
+#include <QMenu>
+#include <QSpinBox>
+#include <QPushButton>
+#include <QDialog>
+#include <QFileDialog>
 
 class ScenarioModel: virtual public QWidget, public BaseModel
 {
@@ -63,6 +69,8 @@ public:
 
     ~ScenarioModel();
 
+    void connectPlots();
+
     void setPlotsData();
     void setGraphsOnAddScenario(int scenarioIndex);
     void setGraphsOnRemoveScenario(int scenarioIndex);
@@ -81,8 +89,14 @@ public:
 private:
     Qt::GlobalColor colors[14];
 
+    int imgWidth;
+    int imgHeight;
+
     void constructPlots();
     void constructGraphs();
+
+    void contextMenuRequest(int plotIndex, QPoint pos);
+    void savePlot(int plotIndex, int format, QPoint pos);
 
     virtual void constructAdditionalPlots() = 0;
     virtual void setAdditionalPlotsData() = 0;
