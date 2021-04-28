@@ -1,4 +1,4 @@
-// Copyright 2020 José María Castelo Ares
+// Copyright 2021 Jose Maria Castelo Ares
 
 // This file is part of SIRview.
 
@@ -26,7 +26,9 @@
 #include <vector>
 #include <list>
 #include <iterator>
+#ifndef Q_MOC_RUN
 #include <boost/numeric/odeint.hpp>
+#endif
 #include <QWidget>
 #include <QLabel>
 #include <QComboBox>

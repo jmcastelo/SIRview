@@ -1,4 +1,4 @@
-// Copyright 2020 José María Castelo Ares
+// Copyright 2021 Jose Maria Castelo Ares
 
 // This file is part of SIRview.
 

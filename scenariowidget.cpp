@@ -1,4 +1,4 @@
-// Copyright 2020 José María Castelo Ares
+// Copyright 2020 Jose Maria Castelo Ares
 
 // This file is part of SIRview.
 
@@ -32,6 +32,10 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
     models.push_back(new ScenarioGenericModel(8, "SEIRS + Vital dynamics", {"S", "E", "I", "R"}, {"Susceptible", "Exposed", "Infected", "Recovered"}, {"P0", "P1", "P2", "P3"}, {0.0, 0.0, 0.0, 0.0}, {20.0, 5.0, 5.0, 5.0}, {2.5, 0.1, 0.1, 0.1}, {1.0 - 1.0e-7, 0.0, 1.0e-7, 0.0}));
 
     currentModel = models[0];
+
+    // Export scenarios data controls
+
+    QPushButton* exportButton = new QPushButton("Export data");
 
     // Model selection controls
 
@@ -125,6 +129,7 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
     // Main controls vertical layout
 
     QVBoxLayout *mainControlsVBoxLayout = new QVBoxLayout;
+    mainControlsVBoxLayout->addWidget(exportButton);
     mainControlsVBoxLayout->addWidget(modelLabel);
     mainControlsVBoxLayout->addWidget(modelComboBox);
     mainControlsVBoxLayout->addWidget(snapshotLabel);
@@ -159,6 +164,7 @@ ScenarioWidget::ScenarioWidget(QWidget *parent): QWidget(parent)
 
     // Signals + Slots
 
+    connect(exportButton, &QPushButton::clicked, [=](){ currentModel->exportData(); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ currentModel = models[modelIndex]; });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) constructInitialConditionsControls(); });
     connect(modelComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int modelIndex){ Q_UNUSED(modelIndex) constructParameterControls(); });

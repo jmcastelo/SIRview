@@ -1,4 +1,4 @@
-// Copyright 2020 José María Castelo Ares
+// Copyright 2021 Jose Maria Castelo Ares
 
 // This file is part of SIRview.
 
@@ -611,4 +611,62 @@ void ScenarioModel::removeScenario(int scenarioIndex)
     scenarios.erase(scenarios.begin() + scenarioIndex, scenarios.begin() + scenarios.size());
     setGraphsOnRemoveScenario(scenarioIndex);
     currentScenarioIndex = scenarios.size() - 1;
+}
+
+void ScenarioModel::exportData()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Export scenarios"), "", tr("Data files (*.dat, *.txt)"));
+
+    if (fileName.isEmpty()) return;
+
+    QFile file(fileName);
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+
+    QTextStream out(&file);
+
+    for (size_t s = 0; s < scenarios.size(); s++)
+    {
+        // Get last time index before new scenario
+
+        size_t j = 0;
+
+        if (s + 1 < scenarios.size())
+        {
+            for (size_t i = 0; i < scenarios[s].times.size(); i++)
+            {
+                if (scenarios[s].times[i] < scenarios[s + 1].timeStart)
+                    j = i;
+            }
+        }
+
+        // Export data
+
+        for (size_t i = 0; i < scenarios[s].times.size(); i++)
+        {
+            out << scenarios[s].times[i] << "\t";
+
+            for (auto var : scenarios[s].steps[i])
+                out << var << "\t";
+
+            for (auto param : scenarios[s].parameters)
+                out << param << "\t";
+
+            if (s + 1 < scenarios.size())
+            {
+                if (i < j)
+                    out << "0";
+                else
+                    out << "1";
+            }
+            else
+            {
+                out << "0";
+            }
+
+            out << "\n";
+        }
+
+        out << "\n";
+    }
 }

@@ -1,4 +1,4 @@
-// Copyright 2020 José María Castelo Ares
+// Copyright 2021 Jose Maria Castelo Ares
 
 // This file is part of SIRview.
 
@@ -34,6 +34,8 @@
 #include <QPushButton>
 #include <QDialog>
 #include <QFileDialog>
+#include <QFile>
+#include <QTextStream>
 
 class ScenarioModel: virtual public QWidget, public BaseModel
 {
@@ -85,6 +87,8 @@ public:
     void deleteScenarios();
     void addScenario();
     void removeScenario(int scenarioIndex);
+
+    void exportData();
 
 private:
     Qt::GlobalColor colors[14];

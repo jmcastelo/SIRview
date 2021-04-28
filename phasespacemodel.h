@@ -1,4 +1,4 @@
-// Copyright 2020 José María Castelo Ares
+// Copyright 2021 Jose Maria Castelo Ares
 
 // This file is part of SIRview.
 
@@ -21,7 +21,9 @@
 #include "basemodel.h"
 #include "models.h"
 #include "qcustomplot.h"
+#ifndef Q_MOC_RUN
 #include <boost/numeric/odeint.hpp>
+#endif
 #include <list>
 #include <vector>
 #include <QVector>

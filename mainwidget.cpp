@@ -1,4 +1,4 @@
-// Copyright 2020 José María Castelo Ares
+// Copyright 2021 Jose Maria Castelo Ares
 
 // This file is part of SIRview.
 
@@ -26,7 +26,7 @@ MainWidget::MainWidget(QWidget *parent): QWidget(parent)
     aboutString.append("Authors: J. M. Castelo & J. A. Oteo (Universidad de Valencia)\n");
     aboutString.append("Code by J. M. Castelo\n\n");
     aboutString.append("Contact email: jose.maria.castelo@gmail.com\n\n");
-    aboutString.append("Copyright 2020 José María Castelo & José Ángel Oteo\n");
+    aboutString.append("Copyright 2021 Jose Maria Castelo & Jose Angel Oteo\n");
     aboutString.append("Released under GPLv3 license.");
 
     QLabel *aboutLabel = new QLabel;
